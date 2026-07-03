@@ -17,6 +17,21 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
+# LAYER 2b (occasionally): DUT network test tooling for agent scripts
+#   ping/scan/throughput/capture + DHCP + best-effort wireless + Python net libs.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        nmap iperf3 arp-scan tcpdump traceroute mtr-tiny netcat-openbsd \
+        isc-dhcp-client iw wireless-tools wpasupplicant rfkill wget \
+        python3-scapy python3-requests \
+    && rm -rf /var/lib/apt/lists/*
+
+# LAYER 2c (occasionally): Playwright + Chromium for the browser MCP (DUT web UI).
+#   Browser lives in a shared, world-readable path so the non-root agent can use it.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN npx -y playwright@latest install --with-deps chromium \
+    && chmod -R a+rX /ms-playwright \
+    && rm -rf /var/lib/apt/lists/*
+
 # LAYER 3 (occasionally): non-root agent user (uid 1000) + home
 RUN (userdel -r ubuntu 2>/dev/null || true) \
     && useradd -m -u 1000 -s /bin/bash agent \

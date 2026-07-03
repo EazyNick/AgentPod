@@ -62,6 +62,12 @@
 - 반복·자동화가 필요한 검증은 일회성 명령보다 **재현 가능한 Python 스크립트**로 만들고, 스크립트 파일과 실행 결과를 로그/리포트에 남긴다.
 - 컨테이너에는 `python3`와 기본 네트워크 도구(`ping`/`ip`/`dig` 등)가 있다. 없으면 스크립트로 대안을 시도한다.
 
+## 사용 가능한 도구
+
+- **MCP — playwright** (`.mcp.json`): DUT 웹 UI를 헤드리스 브라우저로 열어 조작·검증·스크린샷. UI 변경 확인에 사용.
+- **네트워크 CLI**: `ping` `nmap` `iperf3` `arp-scan` `tcpdump` `traceroute` `mtr` `nc` `iw` `wpa_supplicant` `dhclient` `dig` `curl` `wget`.
+- **Python 라이브러리**: `scapy`(패킷 제작 — DHCP/ARP 등), `requests`(DUT REST API). 필요하면 `python3 -m venv`로 추가 설치.
+
 ## DUT 검증 방법 메모
 - **ping**: `ping -c N <DUT_IP>` 또는 Python 스크립트로 도달성·손실률 확인.
 - **DHCP**: 임대 획득 여부/범위 확인 — 클라이언트 임대 관찰, DUT API 조회, 또는 **Python 스크립트로 DHCP 요청/검증**.

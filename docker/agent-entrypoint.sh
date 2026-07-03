@@ -27,5 +27,20 @@ if ! claude plugin list 2>/dev/null | grep -q "superpowers@superpowers-dev"; the
   claude plugin install superpowers@superpowers-dev >/dev/null 2>&1 || true
 fi
 
+# 3c. Auto-approve project-scoped MCP servers (.mcp.json) for autonomous runs
+#     (merge into user settings, never clobber existing keys).
+python3 - <<'PY' || true
+import json, os
+p = os.path.expanduser("~/.claude/settings.json")
+try:
+    with open(p) as f:
+        d = json.load(f)
+except Exception:
+    d = {}
+d["enableAllProjectMcpServers"] = True
+with open(p, "w") as f:
+    json.dump(d, f, indent=2)
+PY
+
 # 4. Hand off to the container command (default: sleep infinity keep-alive).
 exec "$@"

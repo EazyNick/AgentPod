@@ -40,6 +40,11 @@
    - DUT 기능과 연결되는 UI(예: WiFi SSID 설정 → SSID 연결 테스트, DHCP 설정 → DHCP 테스트)는
      해당 DUT 검증 항목을 함께 명시한다.
 
+## 사용 가능한 도구
+
+- **MCP — playwright** (`.mcp.json`): DUT 웹 UI를 헤드리스 브라우저로 열어 화면·요소를 실제로 열거(인벤토리)하는 데 사용.
+- **네트워크 CLI / Python**: `ping` `nmap` `dig` `curl` 등과 `scapy`/`requests` — 어떤 UI가 어떤 DUT 기능(ping/SSID/DHCP)과 연결되는지 확인할 때 참고.
+
 ## 산출물 형식
 
 `ui-inventory.md`:
