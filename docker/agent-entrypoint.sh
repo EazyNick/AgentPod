@@ -19,25 +19,12 @@ fi
 
 # 3. Install & enable the superpowers Claude Code plugin (idempotent, best-effort).
 #    ~/.claude is bind-mounted from the host, so this persists and is shared
-#    across containers (like login). Requires network; never fails the boot.
-CLAUDE_DIR="/home/agent/.claude"
-mkdir -p "$CLAUDE_DIR"
-# 3a. Enable it in user settings (merge, never clobber existing settings).
-python3 - <<'PY' || true
-import json, os
-p = os.path.expanduser("~/.claude/settings.json")
-try:
-    with open(p) as f:
-        d = json.load(f)
-except Exception:
-    d = {}
-d.setdefault("enabledPlugins", {})["superpowers@claude-plugins-official"] = True
-with open(p, "w") as f:
-    json.dump(d, f, indent=2)
-PY
-# 3b. Fetch/install it if not present yet (official marketplace is built-in).
-if ! claude plugin list 2>/dev/null | grep -q "superpowers"; then
-  claude plugin install superpowers@claude-plugins-official 2>/dev/null || true
+#    across containers (like login). Public git clone — no auth needed; never
+#    fails the boot. Marketplace name "superpowers-dev" is declared by the repo.
+mkdir -p /home/agent/.claude
+if ! claude plugin list 2>/dev/null | grep -q "superpowers@superpowers-dev"; then
+  claude plugin marketplace add obra/superpowers >/dev/null 2>&1 || true
+  claude plugin install superpowers@superpowers-dev >/dev/null 2>&1 || true
 fi
 
 # 4. Hand off to the container command (default: sleep infinity keep-alive).
