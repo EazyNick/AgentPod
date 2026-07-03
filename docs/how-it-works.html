@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — 동작 원리 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(28px,5vw,42px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:70ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:23px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16.5px;margin:26px 0 6px;color:var(--ink)}
+  p{margin:10px 0}
+  .muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  .grid{display:grid;gap:14px}
+  @media(min-width:720px){.grid.c2{grid-template-columns:1fr 1fr}.grid.c3{grid-template-columns:1fr 1fr 1fr}}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:14px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .cmt{color:#7d8794}
+  .k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .tag{font-size:12px;padding:1px 8px;border-radius:6px;font-weight:600}
+  .tag.ok{background:color-mix(in srgb,var(--accent2) 22%,transparent);color:var(--accent2)}
+  .tag.no{background:color-mix(in srgb,var(--danger) 18%,transparent);color:var(--danger)}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}
+  .note.danger{border-color:var(--danger)}
+  .flow{display:flex;flex-direction:column;gap:0}
+  .step{display:flex;gap:14px;align-items:flex-start;padding:12px 0}
+  .dot{flex:0 0 30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:13px}
+  .bar{flex:0 0 30px;display:flex;justify-content:center}
+  .bar::before{content:"";width:2px;height:100%;background:var(--line)}
+  .step .body{padding-bottom:2px}
+  .step .body b{font-weight:650}
+  .filetree{font-family:ui-monospace,monospace;font-size:13px;color:var(--muted);white-space:pre;line-height:1.7}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+  .kpi{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+  .kpi div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;flex:1 1 150px}
+  .kpi b{display:block;font-size:20px}
+  .kpi span{color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod · Phase 1</div>
+  <h1>동작 원리 가이드</h1>
+  <p class="lead">Docker로 격리된 자율 AI 코딩 에이전트 컨테이너가 <b>내부적으로 어떻게 움직이는지</b> — 컨테이너 수명주기, 세션 카운팅, 크레덴셜 격리, MD 컨텍스트 주입까지의 실제 구현을 설명합니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">Python 3.12+ 오케스트레이터</span>
+    <span class="pill">Docker CLI (subprocess)</span>
+    <span class="pill">ubuntu:24.04 · Node 22 · claude 2.1.199</span>
+    <span class="pill">비루트 agent(uid 1000)</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#overview">개요</a>
+  <a href="#philosophy">설계 원칙</a>
+  <a href="#modules">모듈 구조</a>
+  <a href="#flow">실행 흐름</a>
+  <a href="#naming">이름 규칙</a>
+  <a href="#lifecycle">세션 수명주기</a>
+  <a href="#creds">크레덴셜 격리</a>
+  <a href="#context">MD 컨텍스트</a>
+  <a href="#image">컨테이너 이미지</a>
+  <a href="#security">보안 모델</a>
+  <a href="#scope">범위</a>
+</div></nav>
+
+<section id="overview">
+<h2><span class="num">1</span>한눈에 보는 개요</h2>
+<p>AgentPod는 <b>호스트에서 도는 Python CLI(오케스트레이터)</b>와 <b>프로젝트마다 하나씩 뜨는 격리된 Docker 컨테이너</b>로 이루어집니다. 위험한 자율 실행 플래그(<code>--dangerously-skip-permissions</code>)는 <b>컨테이너 안에서만</b> 돌고, 컨테이너 밖 호스트에서는 절대 실행되지 않습니다. 필요한 모든 것(인증·컨텍스트)은 호스트 상태를 긁어오지 않고 <b>파일과 바인드 마운트로 선언</b>합니다.</p>
+<div class="kpi">
+  <div><b>1 : 1</b><span>프로젝트 : 컨테이너 (경로 해시로 결정)</span></div>
+  <div><b>refcount</b><span>마지막 세션이 나가면 자동 stop</span></div>
+  <div><b>docker exec</b><span>컨테이너는 대기, 도구는 붙어서 실행</span></div>
+  <div><b>0 sock</b><span>docker.sock 마운트 없음 = 격리 유지</span></div>
+</div>
+</section>
+
+<section id="philosophy">
+<h2><span class="num">2</span>움직이지 않는 설계 원칙</h2>
+<div class="grid c2">
+  <div class="panel"><h3>격리가 자율성을 가능케 한다</h3><p class="muted">무인 실행 플래그의 폭발 반경을 컨테이너로 가둔다. 격리 없이 이 플래그를 쓰는 것은 재앙.</p></div>
+  <div class="panel"><h3>호스트 독립 (선언적)</h3><p class="muted">env·컨텍스트를 호스트에서 자동으로 긁어오지 않는다. 파일에 적어두면 갖춰진다 → 어디서 실행해도 동일.</p></div>
+  <div class="panel"><h3>컨테이너는 일회용, 상태는 밖에</h3><p class="muted">컨테이너는 언제든 버릴 수 있고, 로그인·캐시 등 무거운 상태는 바인드 마운트로 영속.</p></div>
+  <div class="panel"><h3>docker는 바깥에서만</h3><p class="muted">컨테이너를 스폰·관리하는 docker 명령은 신뢰할 수 있는 호스트 오케스트레이터만 실행. 에이전트 컨테이너 안엔 docker가 없다.</p></div>
+</div>
+</section>
+
+<section id="modules">
+<h2><span class="num">3</span>모듈 구조</h2>
+<p>오케스트레이터는 <b>한 파일 = 한 책임</b>으로 잘게 나뉜 Python 패키지입니다. 순수 함수 모듈(naming/paths/registry/context)과 부수효과 모듈(session/docker_ctl)을 CLI가 조립합니다.</p>
+<div class="filetree">src/agentpod/
+├── cli.py         <span class="cmt"># Typer 앱: build/run/shell/status/stop/rm/context 조립</span>
+├── naming.py      <span class="cmt"># 경로 → 결정적 projectId / 컨테이너명 / 락 prefix</span>
+├── paths.py       <span class="cmt"># ~/.agent 데이터 레이아웃 + ensure_layout()</span>
+├── registry.py    <span class="cmt"># 도구 정의(claude): 바이너리·플래그·크레덴셜 마운트</span>
+├── context.py     <span class="cmt"># 프로젝트별 MD 컨텍스트 폴더 → 마운트 해석</span>
+├── session.py     <span class="cmt"># 락파일·레퍼런스 카운팅·크래시 복구·시그널</span>
+└── docker_ctl.py  <span class="cmt"># docker CLI subprocess 래퍼 + Mount 데이터클래스</span>
+Dockerfile · docker/agent-entrypoint.sh  <span class="cmt"># 에이전트 컨테이너 이미지 + 초기화</span></div>
+<table>
+<tr><th>모듈</th><th>대표 함수</th><th>역할</th></tr>
+<tr><td><code>naming</code></td><td><code>project_id</code>, <code>container_name</code>, <code>lock_prefix</code></td><td>경로를 안정적인 식별자로</td></tr>
+<tr><td><code>paths</code></td><td><code>agent_root</code>, <code>ensure_layout</code></td><td><code>~/.agent</code> 하위 디렉토리 보장</td></tr>
+<tr><td><code>registry</code></td><td><code>get_tool</code>, <code>REGISTRY</code></td><td>도구별 차이를 데이터로 (개방-폐쇄)</td></tr>
+<tr><td><code>context</code></td><td><code>resolve_mount</code></td><td>컨텍스트 폴더 존재 시 ro 마운트 반환</td></tr>
+<tr><td><code>session</code></td><td><code>create_lock</code>, <code>active_sessions</code>, <code>release_lock</code></td><td>세션 카운팅으로 컨테이너 stop 제어</td></tr>
+<tr><td><code>docker_ctl</code></td><td><code>run_detached</code>, <code>exec_interactive</code>, <code>container_state</code></td><td>docker CLI를 얇게 감쌈</td></tr>
+</table>
+</section>
+
+<section id="flow">
+<h2><span class="num">4</span>실행 흐름 — <code>agentpod run</code></h2>
+<p>사용자가 프로젝트 디렉토리에서 <code>agentpod run</code>을 치면 벌어지는 일:</p>
+<div class="panel flow">
+  <div class="step"><div class="dot">1</div><div class="body"><b>이름 계산</b> — 현재 경로를 <code>realpath</code>로 정규화 → <code>projectId = basename-sha256[:12]</code> → 컨테이너명 <code>agent-&lt;projectId&gt;</code>.</div></div>
+  <div class="step"><div class="bar"></div><div class="body"><b>이미지 보장</b> — <code>agentpod:latest</code>가 없으면 자동 빌드.</div></div>
+  <div class="step"><div class="dot">2</div><div class="body"><b>컨테이너 스폰/재사용</b> — 상태가 <code>running</code>이면 재사용, <code>exited</code>면 <code>start</code>, 없으면 <code>docker run -d</code>로 새로 생성(마운트·workdir·env-file 조립).</div></div>
+  <div class="step"><div class="bar"></div><div class="body"><b>초기화(entrypoint)</b> — git safe.directory 설정 → MD 컨텍스트가 있으면 <code>~/.claude/CLAUDE.md</code>에 <code>@import</code> 주입 → <code>sleep infinity</code>로 대기.</div></div>
+  <div class="step"><div class="dot">3</div><div class="body"><b>세션 락 생성</b> — <code>~/.agent/locks/&lt;prefix&gt;--&lt;sessionId&gt;.lock</code>에 현재 PID 기록. 시그널 핸들러 등록.</div></div>
+  <div class="step"><div class="bar"></div><div class="body"><b>도구 실행</b> — <code>docker exec -it</code>로 <code>claude --dangerously-skip-permissions</code>를 컨테이너 안에서 실행(TTY 상속).</div></div>
+  <div class="step"><div class="dot">4</div><div class="body"><b>종료·정리</b> — 세션 락 삭제 → 같은 prefix에 <b>살아있는 다른 세션이 없으면</b> 컨테이너 <code>stop</code>.</div></div>
+</div>
+<pre><code><span class="cmt"># 런처가 컨테이너 안에서 조립·실행하는 명령 (개념)</span>
+docker exec -it agent-&lt;projectId&gt; \
+  claude <span class="k">--dangerously-skip-permissions</span>   <span class="cmt"># ← 이 플래그는 컨테이너 안에서만</span></code></pre>
+</section>
+
+<section id="naming">
+<h2><span class="num">5</span>결정적 이름 규칙</h2>
+<p>같은 프로젝트는 <b>항상 같은 컨테이너 이름</b>이 되도록 경로를 해시합니다. 그래서 다시 들어가면 세션·컨텍스트가 이어지고, <code>claude --continue</code>가 동작합니다.</p>
+<pre><code>projectId     = &lt;정규화된 basename&gt;-&lt;sha256(realpath)[:12]&gt;
+컨테이너명    = <span class="s">"agent-"</span> + projectId
+락 prefix     = projectId            <span class="cmt"># 프로파일 도입 시: projectId + "--p--&lt;profile&gt;"</span>
+
+<span class="cmt"># 예</span>
+/home/me/work/<span class="f">MyRepo</span>  →  myrepo-12e2c4ef8799  →  <span class="s">agent-myrepo-12e2c4ef8799</span></code></pre>
+<p class="muted">basename은 소문자화하고 영숫자 외 문자를 하이픈으로 축약합니다. 경로는 심볼릭 링크에 흔들리지 않도록 <code>realpath</code>로 정규화한 뒤 해시합니다.</p>
+</section>
+
+<section id="lifecycle">
+<h2><span class="num">6</span>세션 수명주기 — 레퍼런스 카운팅</h2>
+<p>한 컨테이너에 여러 세션이 붙을 수 있으므로(향후 병렬 모델의 전제), 컨테이너를 언제 멈출지는 <b>락파일 카운팅</b>으로 결정합니다.</p>
+<div class="grid c3">
+  <div class="panel"><h3>생성</h3><p class="muted"><code>&lt;prefix&gt;--&lt;sessionId&gt;.lock</code> 파일에 PID 기록.</p></div>
+  <div class="panel"><h3>집계</h3><p class="muted">같은 prefix 락을 열거하되 <b>살아있는 PID</b>만 센다.</p></div>
+  <div class="panel"><h3>정리</h3><p class="muted">내 락 삭제 → 남은 활성 세션이 0이면 컨테이너 stop.</p></div>
+</div>
+<h3>크래시 복구 (stale 청소)</h3>
+<p>오케스트레이터가 강제 종료되면 락파일이 남을 수 있습니다. PID 생존 검사로 유령 락을 즉시 청소합니다.</p>
+<pre><code><span class="cmt"># PID 생존 판정</span>
+os.kill(pid, <span class="k">0</span>)
+  → 성공 / PermissionError  ⇒ <span class="s">살아있음</span>
+  → ProcessLookupError      ⇒ <span class="s">죽음</span> → 락 즉시 삭제</code></pre>
+<div class="note"><b>시그널 처리.</b> <code>SIGINT / SIGTERM / SIGHUP</code> + <code>atexit</code>로 정리 루틴을 걸고, "이미 정리함" 플래그로 중복 실행을 막습니다. <code>SIGHUP</code>이 없는 플랫폼에서도 등록이 깨지지 않도록 시그널을 이름으로 안전하게 조회합니다.</div>
+</section>
+
+<section id="creds">
+<h2><span class="num">7</span>크레덴셜 격리 & 인증</h2>
+<p>사람의 <code>~/.claude</code>는 절대 건드리지 않습니다. 에이전트 전용 저장소 <code>~/.agent/claude</code>를 컨테이너의 <code>/home/agent/.claude</code>에 바인드 마운트합니다.</p>
+<table>
+<tr><th>방식</th><th>메커니즘</th><th>영속</th></tr>
+<tr><td>API 키</td><td>프로젝트 <code>.env</code>의 <code>ANTHROPIC_API_KEY</code> → <code>--env-file</code>로 주입</td><td>파일에 선언</td></tr>
+<tr><td>대화형 로그인</td><td>컨테이너 안 <code>claude login</code> 1회 → 자격이 <code>~/.agent/claude</code>에 기록</td><td>바인드 마운트로 컨테이너가 죽어도 유지</td></tr>
+</table>
+<p class="muted">둘은 공존 가능하며, API 키가 있으면 그것이 우선합니다.</p>
+</section>
+
+<section id="context">
+<h2><span class="num">8</span>컨테이너별 MD 컨텍스트 주입</h2>
+<p>컨테이너(=프로젝트)마다 <b>자기만의 지침·문서 세트</b>를 봅니다. 폴더 하나 = 컨테이너 하나이며, 다른 컨테이너의 MD를 상속하지 않습니다.</p>
+<pre><code>~/.agent/contexts/&lt;projectId&gt;/
+├── CLAUDE.md      <span class="cmt"># 에이전트 지침 (있으면 자동 주입)</span>
+└── *.md           <span class="cmt"># 참고 문서</span></code></pre>
+<div class="panel flow" style="margin-top:8px">
+  <div class="step"><div class="dot">A</div><div class="body">폴더가 존재하면 <code>/home/agent/context</code>에 <b>읽기 전용</b>으로 마운트.</div></div>
+  <div class="step"><div class="bar"></div><div class="body">entrypoint가 <code>context/CLAUDE.md</code>를 발견하면 유저 메모리 <code>~/.claude/CLAUDE.md</code>에 한 줄 추가:</div></div>
+  <div class="step"><div class="dot">B</div><div class="body"><code>@/home/agent/context/CLAUDE.md</code> — Claude가 이 import를 따라 지침을 자동 로드.</div></div>
+</div>
+<div class="note"><b>핵심:</b> 사용자의 저장소를 전혀 건드리지 않습니다. 주입은 컨테이너 내부 유저 메모리 파일에만 일어나고, 중복 추가되지 않도록 idempotent 합니다. → <b>파일만 넣으면 끝, 코드 수정 없음.</b></div>
+</section>
+
+<section id="image">
+<h2><span class="num">9</span>컨테이너 이미지</h2>
+<p>캐시 친화적으로 "거의 안 바뀜 → 자주 바뀜" 순서의 레이어로 구성한 멀티스테이지 빌드입니다.</p>
+<table>
+<tr><th>레이어</th><th>내용</th></tr>
+<tr><td>베이스</td><td><code>ubuntu:24.04</code> + <code>curl git ca-certificates unzip</code> + locales/tzdata</td></tr>
+<tr><td>런타임</td><td>Node.js 22 (claude CLI 및 <code>npx</code> 기반 MCP 구동용)</td></tr>
+<tr><td>사용자</td><td>비루트 <code>agent</code> (uid <b>1000</b>) — 호스트 사용자와 uid를 맞춰 바인드 마운트 소유권 정합</td></tr>
+<tr><td>도구</td><td><code>@anthropic-ai/claude-code</code> 전역 설치 → <code>claude</code> on PATH</td></tr>
+<tr><td>진입점</td><td><code>agent-entrypoint.sh</code> · <code>CMD ["sleep","infinity"]</code></td></tr>
+</table>
+<div class="note warn"><b>Ubuntu 24.04 주의:</b> 베이스 이미지에 이미 uid 1000인 <code>ubuntu</code> 사용자가 있어, <code>agent</code>를 uid 1000으로 만들려면 기존 사용자를 먼저 제거합니다(<code>userdel -r ubuntu</code>). 이 값이 WSL2 호스트 사용자(대개 uid 1000)와 맞아야 마운트된 프로젝트 파일 쓰기 권한이 정상 동작합니다.</div>
+</section>
+
+<section id="security">
+<h2><span class="num">10</span>보안 모델</h2>
+<table>
+<tr><th>불변식</th><th>상태</th></tr>
+<tr><td>자율 플래그는 컨테이너 안에서만</td><td><span class="tag ok">보장</span> 호스트 어떤 경로에도 <code>--dangerously-skip-permissions</code> 없음</td></tr>
+<tr><td><code>docker.sock</code> 마운트 없음</td><td><span class="tag ok">보장</span> DooD 미채택 → 컨테이너가 호스트 루트를 얻지 못함</td></tr>
+<tr><td><code>--network host</code> 미사용</td><td><span class="tag ok">보장</span> 기본 bridge로 네트워크 격리</td></tr>
+<tr><td>호스트 gitconfig/ssh 마운트</td><td><span class="tag no">없음</span> 사람 개인키를 자율 에이전트에 노출 안 함</td></tr>
+<tr><td>크레덴셜 위치</td><td><span class="tag ok">격리</span> 사람 <code>~/.claude</code>가 아닌 <code>~/.agent</code></td></tr>
+<tr><td>비밀 값</td><td><span class="tag ok">gitignore</span> <code>.env</code>는 커밋 안 됨, 이미지/저장소에 하드코딩 없음</td></tr>
+</table>
+</section>
+
+<section id="scope">
+<h2><span class="num">11</span>이번 단계 범위</h2>
+<div class="grid c2">
+  <div class="panel"><h3>✅ 구현됨 (Phase 1)</h3><p class="muted">CLI(build/run/shell/status/stop/rm/context) · 결정적 이름 · 세션 카운팅 · 크래시 복구 · 크레덴셜 격리(2방식) · MD 컨텍스트 자동 주입 · claude 단일 도구 registry · 이미지 빌드</p></div>
+  <div class="panel"><h3>⏭ 후속 단계</h3><p class="muted">Chromium(headless) · 프로파일 다중 신원 · <code>.mcp.json</code>/skills 설치 · 봇 git 신원 · mise 캐시 · worktree 병렬 실행 · 리소스 상한 · 고아 GC</p></div>
+</div>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>사용법은 <a class="link" href="user-guide.html">사용자 가이드</a>를, 설계 근거는 <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a>를 참고하세요.</p>
+</footer>
+
+</div>
+</body>
+</html>

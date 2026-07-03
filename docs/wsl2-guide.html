@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — WSL2 사용자 가이드 (설치 포함)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}   /* prompt */
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}
+  .note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:12.5px;font-family:ui-monospace,monospace}
+  .check{list-style:none;padding:0;margin:12px 0}
+  .check li{padding:5px 0 5px 28px;position:relative;color:var(--muted)}
+  .check li::before{content:"✓";position:absolute;left:0;color:var(--accent2);font-weight:700}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+  .env-badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;
+    background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);margin-left:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod · WSL2</div>
+  <h1>WSL2 사용자 가이드 <span class="env-badge">설치 포함</span></h1>
+  <p class="lead">Windows + WSL2(Ubuntu) 환경에서 AgentPod를 <b>네이티브로</b> 설치하고 실행하는 전 과정. WSL2 설치 → Docker 연동 → Python 준비 → AgentPod 설치 → 첫 실행까지 순서대로 따라 하면 됩니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">Windows 11 + WSL2</span>
+    <span class="pill">Ubuntu 배포판</span>
+    <span class="pill">Docker Desktop (WSL 백엔드)</span>
+    <span class="pill">Python 3.12+</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#why">왜 WSL2</a>
+  <a href="#s1">① WSL2 설치</a>
+  <a href="#s2">② Docker 연동</a>
+  <a href="#s3">③ Python 준비</a>
+  <a href="#s4">④ AgentPod 설치</a>
+  <a href="#s5">⑤ 이미지 빌드</a>
+  <a href="#s6">⑥ 첫 실행</a>
+  <a href="#verify">동작 확인</a>
+  <a href="#trouble">문제 해결</a>
+</div></nav>
+
+<section id="why">
+<h2><span class="num">0</span>왜 WSL2가 권장 타깃인가</h2>
+<p>AgentPod의 오케스트레이터는 리눅스 기본 동작(<code>os.kill</code> 기반 PID 검사, POSIX 시그널, <code>~/.agent</code> 경로, uid 정합)을 전제로 설계되었습니다. WSL2 안의 Ubuntu는 진짜 리눅스 커널을 쓰므로 이 모든 것이 깔끔하게 동작합니다. 또한 WSL2 기본 사용자 uid가 <b>1000</b>이라, 컨테이너의 <code>agent</code>(uid 1000)와 맞아 바인드 마운트 파일 권한이 자연스럽게 정합됩니다.</p>
+<div class="note ok"><b>준비물 체크리스트</b>
+<ul class="check">
+  <li>Windows 10 22H2+ 또는 Windows 11</li>
+  <li>관리자 권한 (WSL 최초 설치 시)</li>
+  <li>Docker Desktop 설치 가능 환경</li>
+</ul></div>
+</section>
+
+<section id="s1">
+<h2><span class="num">1</span>WSL2 + Ubuntu 설치</h2>
+<p>이미 Ubuntu 배포판이 있다면 이 단계는 건너뛰어도 됩니다. (확인: PowerShell에서 <code>wsl -l -v</code> → <code>Ubuntu</code>가 보이고 VERSION이 <code>2</code>)</p>
+<ol class="steps">
+  <li><h3>WSL 설치 (PowerShell 관리자)</h3>
+    <pre><code><span class="p">PS&gt;</span> wsl --install -d Ubuntu</code></pre>
+    <p class="muted">재부팅이 요구될 수 있습니다. 설치 후 Ubuntu가 처음 실행되면 리눅스 사용자 이름/비밀번호를 만듭니다(이 사용자가 uid 1000이 됩니다).</p></li>
+  <li><h3>WSL2인지 확인</h3>
+    <pre><code><span class="p">PS&gt;</span> wsl -l -v
+<span class="cmt">  NAME              STATE      VERSION</span>
+<span class="cmt">  Ubuntu            Running    2      ← VERSION이 2여야 함</span></code></pre>
+    <p class="muted">만약 <code>1</code>이면: <code>wsl --set-version Ubuntu 2</code></p></li>
+  <li><h3>Ubuntu 진입 &amp; 최신화</h3>
+    <pre><code><span class="p">PS&gt;</span> wsl -d Ubuntu
+<span class="p">$</span> sudo apt update &amp;&amp; sudo apt upgrade -y</code></pre></li>
+</ol>
+</section>
+
+<section id="s2">
+<h2><span class="num">2</span>Docker 연동 (핵심)</h2>
+<p>AgentPod는 <code>docker</code> 명령을 Ubuntu 안에서 호출합니다. Docker Desktop의 WSL 통합을 켜면 Ubuntu에서 같은 Docker 엔진을 쓸 수 있습니다.</p>
+<ol class="steps">
+  <li><h3>Docker Desktop 설치 &amp; WSL2 백엔드</h3>
+    <p class="muted">Docker Desktop을 설치하고 실행합니다. Settings → General에서 <b>“Use the WSL 2 based engine”</b>이 켜져 있는지 확인합니다.</p></li>
+  <li><h3>Ubuntu에 통합 켜기</h3>
+    <p class="muted">Docker Desktop → <b>Settings → Resources → WSL Integration</b> → <b>Ubuntu</b> 토글을 <b>ON</b> → <b>Apply &amp; restart</b>.</p>
+    <div class="note warn">이 토글이 꺼져 있으면 Ubuntu 안에서 <code>docker: command not found</code> 또는 “could not be found in this WSL 2 distro” 오류가 납니다.</div></li>
+  <li><h3>Ubuntu에서 docker 확인</h3>
+    <pre><code><span class="p">$</span> docker version --format <span class="s">'{{.Server.Version}}'</span>
+<span class="cmt"># 서버 버전이 출력되면 성공</span>
+<span class="p">$</span> docker run --rm hello-world</code></pre></li>
+</ol>
+</section>
+
+<section id="s3">
+<h2><span class="num">3</span>Python 준비</h2>
+<p>AgentPod 오케스트레이터는 Python 3.12+가 필요합니다. Ubuntu의 Python이 <code>pip</code>/<code>venv</code> 없이 최소 설치된 경우가 있으니 함께 설치합니다.</p>
+<pre><code><span class="p">$</span> python3 --version            <span class="cmt"># 3.12 이상인지 확인</span>
+<span class="p">$</span> sudo apt install -y python3-pip python3-venv git</code></pre>
+<div class="note"><b>가상환경(venv) 권장.</b> 시스템 파이썬을 어지럽히지 않도록 프로젝트 전용 venv를 씁니다.
+<pre><code><span class="p">$</span> python3 -m venv ~/.venvs/agentpod
+<span class="p">$</span> source ~/.venvs/agentpod/bin/activate
+<span class="cmt"># 프롬프트 앞에 (agentpod)가 붙습니다</span></code></pre></div>
+<div class="note warn"><b>파일 위치 팁:</b> 소스를 <code>/mnt/c/...</code>(윈도우 파일시스템)보다 <code>~/</code>(리눅스 파일시스템) 아래 두면 성능·권한 문제가 없습니다.</div>
+</section>
+
+<section id="s4">
+<h2><span class="num">4</span>AgentPod 설치</h2>
+<ol class="steps">
+  <li><h3>소스 가져오기</h3>
+    <pre><code><span class="p">$</span> cd ~
+<span class="p">$</span> git clone &lt;repo-url&gt; AgentPod      <span class="cmt"># 또는 기존 소스를 복사</span>
+<span class="p">$</span> cd AgentPod</code></pre>
+    <p class="muted">Windows 쪽에 이미 소스가 있다면 리눅스로 복사: <code>cp -r /mnt/c/Users/&lt;you&gt;/Downloads/Project/AgentPod ~/AgentPod</code></p></li>
+  <li><h3>패키지 설치</h3>
+    <pre><code><span class="p">$</span> pip install -e <span class="s">"."</span>
+<span class="cmt"># 개발/테스트까지</span>
+<span class="p">$</span> pip install -e <span class="s">".[dev]"</span></code></pre></li>
+  <li><h3>설치 확인 &amp; 유닛 테스트</h3>
+    <pre><code><span class="p">$</span> agentpod --help
+<span class="p">$</span> pytest -m <span class="s">"not integration"</span>
+<span class="cmt"># 33 passed 가 나오면 정상</span></code></pre></li>
+</ol>
+</section>
+
+<section id="s5">
+<h2><span class="num">5</span>에이전트 이미지 빌드</h2>
+<p>최초 1회. ubuntu·Node·claude 설치로 몇 분 걸리며, 이후에는 캐시로 빨라집니다.</p>
+<pre><code><span class="p">$</span> agentpod build
+<span class="cmt"># 완료 후 확인</span>
+<span class="p">$</span> docker run --rm agentpod:latest bash -lc <span class="s">"claude --version &amp;&amp; whoami &amp;&amp; id -u"</span>
+<span class="cmt"># 예: 2.1.199 (Claude Code) / agent / 1000</span></code></pre>
+</section>
+
+<section id="s6">
+<h2><span class="num">6</span>첫 실행</h2>
+<ol class="steps">
+  <li><h3>프로젝트로 이동</h3>
+    <pre><code><span class="p">$</span> cd ~/work/my-project</code></pre></li>
+  <li><h3>인증 준비 (택1)</h3>
+    <p class="muted"><b>API 키:</b> 프로젝트 루트에 <code>.env</code> 생성</p>
+    <pre><code><span class="cmt"># ~/work/my-project/.env</span>
+ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+    <p class="muted"><b>또는 대화형 로그인:</b> 실행 후 컨테이너 셸에서 <code>claude login</code></p>
+    <pre><code><span class="p">$</span> agentpod shell
+<span class="p">agent@…$</span> claude login
+<span class="p">agent@…$</span> exit</code></pre></li>
+  <li><h3>(선택) 컨테이너별 지침 넣기</h3>
+    <pre><code><span class="p">$</span> agentpod context          <span class="cmt"># 컨텍스트 폴더 경로 출력</span>
+<span class="p">$</span> mkdir -p "$(agentpod context | head -1)"
+<span class="p">$</span> $EDITOR "$(agentpod context | head -1)/CLAUDE.md"</code></pre></li>
+  <li><h3>실행</h3>
+    <pre><code><span class="p">$</span> agentpod run
+<span class="cmt"># 격리된 컨테이너 안에서 Claude Code 대화형 세션 진입</span></code></pre></li>
+  <li><h3>종료 &amp; 자동 정리</h3>
+    <p class="muted">세션을 빠져나오면(<kbd>Ctrl</kbd>+<kbd>D</kbd>) 마지막 세션일 때 컨테이너가 자동으로 멈춥니다.</p></li>
+</ol>
+</section>
+
+<section id="verify">
+<h2><span class="num">7</span>동작 확인 (스모크 테스트)</h2>
+<p>컨테이너가 제대로 뜨고 Claude가 준비됐는지 비대화형으로 확인:</p>
+<pre><code><span class="p">$</span> cd ~/work/my-project
+<span class="p">$</span> agentpod run &amp;            <span class="cmt"># 또는 다른 터미널에서</span>
+<span class="p">$</span> agentpod status           <span class="cmt"># agent-… 컨테이너가 running 인지</span>
+
+<span class="cmt"># 컨테이너 이름을 확인해 내부 상태 점검</span>
+<span class="p">$</span> C=$(docker ps --filter name=agent- --format <span class="s">'{{.Names}}'</span> | head -1)
+<span class="p">$</span> docker exec "$C" bash -lc <span class="s">'whoami; id -u; claude --version; cat /home/agent/.claude/CLAUDE.md 2&gt;/dev/null'</span>
+<span class="cmt"># agent / 1000 / 2.1.199 (Claude Code) / @/home/agent/context/CLAUDE.md (컨텍스트 넣었다면)</span></code></pre>
+<table>
+<tr><th>확인 항목</th><th>기대값</th></tr>
+<tr><td>컨테이너 상태</td><td><code>running</code></td></tr>
+<tr><td>사용자 / uid</td><td><code>agent</code> / <code>1000</code></td></tr>
+<tr><td>Claude Code</td><td>버전 문자열 출력 (예: 2.1.199)</td></tr>
+<tr><td>MD 주입</td><td><code>@/home/agent/context/CLAUDE.md</code> (컨텍스트 폴더가 있을 때)</td></tr>
+</table>
+</section>
+
+<section id="trouble">
+<h2><span class="num">8</span>WSL2 특유의 문제 해결</h2>
+<table>
+<tr><th>증상</th><th>해결</th></tr>
+<tr><td>Ubuntu에서 <code>docker: command not found</code></td><td>Docker Desktop → Settings → Resources → WSL Integration에서 Ubuntu 토글 ON → Apply &amp; restart.</td></tr>
+<tr><td><code>ensurepip is not available</code> (venv 실패)</td><td><code>sudo apt install -y python3-venv</code> 후 다시 <code>python3 -m venv</code>.</td></tr>
+<tr><td><code>No module named pip</code></td><td><code>sudo apt install -y python3-pip</code>.</td></tr>
+<tr><td>기본 배포판이 <code>docker-desktop</code></td><td>정상(도커용 유틸 VM). AgentPod는 <code>wsl -d Ubuntu</code>의 Ubuntu에서 실행하세요.</td></tr>
+<tr><td>Docker 데몬 미기동</td><td>Windows에서 Docker Desktop 앱을 실행(트레이 아이콘 초록).</td></tr>
+<tr><td><code>/mnt/c</code> 경로에서 느림/권한 경고</td><td>소스를 리눅스 홈(<code>~/</code>)으로 옮겨 실행.</td></tr>
+<tr><td>마운트된 프로젝트 파일 쓰기 오류</td><td>WSL2 기본 사용자 uid가 1000인지 확인(<code>id -u</code>). 컨테이너 <code>agent</code>가 uid 1000이라 일치해야 함.</td></tr>
+</table>
+</section>
+
+<section id="ref">
+<h2><span class="num">9</span>명령어 요약</h2>
+<pre><code><span class="p">$</span> agentpod build [--force]   <span class="cmt"># 이미지 빌드</span>
+<span class="p">$</span> agentpod run              <span class="cmt"># 컨테이너 스폰/재사용 → Claude 대화형</span>
+<span class="p">$</span> agentpod shell            <span class="cmt"># 컨테이너 bash (로그인·디버깅)</span>
+<span class="p">$</span> agentpod status           <span class="cmt"># 전체 컨테이너·세션 수</span>
+<span class="p">$</span> agentpod stop             <span class="cmt"># 현재 프로젝트 컨테이너 stop</span>
+<span class="p">$</span> agentpod rm               <span class="cmt"># stop + 제거</span>
+<span class="p">$</span> agentpod context          <span class="cmt"># MD 컨텍스트 폴더 경로</span></code></pre>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>일반 사용법은 <a class="link" href="user-guide.html">사용자 가이드</a>, 내부 동작은 <a class="link" href="how-it-works.html">동작 원리 가이드</a>, 설계 근거는 <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a>.</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — 사용자 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(28px,5vw,42px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:70ch}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:23px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16.5px;margin:24px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  .grid{display:grid;gap:14px}
+  @media(min-width:720px){.grid.c2{grid-template-columns:1fr 1fr}}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{position:relative;background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:14px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}
+  .cmd{display:grid;grid-template-columns:auto 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:14px 0}
+  .cmd>div{padding:10px 14px;border-bottom:1px solid var(--line)}
+  .cmd>div:nth-last-child(-n+2){border-bottom:none}
+  .cmd .c{font-family:ui-monospace,monospace;background:var(--panel2);color:var(--accent);white-space:nowrap;font-size:13.5px}
+  .cmd .d{color:var(--muted)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 16px 42px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:28px;height:28px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:13px}
+  ol.steps li::after{content:"";position:absolute;left:14px;top:30px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  kbd{background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 7px;font-size:12.5px;font-family:ui-monospace,monospace}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;
+    background:color-mix(in srgb,var(--accent2) 20%,transparent);color:var(--accent2);margin-left:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod · Phase 1</div>
+  <h1>사용자 가이드</h1>
+  <p class="lead">프로젝트마다 격리된 Docker 컨테이너를 띄우고 그 안에서 Claude Code를 실행하는 방법 — 설치부터 인증, 컨테이너별 지침 관리, 문제 해결까지.</p>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#req">요구사항</a>
+  <a href="#install">설치</a>
+  <a href="#quickstart">빠른 시작</a>
+  <a href="#commands">명령어</a>
+  <a href="#auth">인증</a>
+  <a href="#context">MD 컨텍스트</a>
+  <a href="#multi">여러 컨테이너</a>
+  <a href="#trouble">문제 해결</a>
+  <a href="#security">안전 수칙</a>
+</div></nav>
+
+<section id="req">
+<h2><span class="num">1</span>요구사항</h2>
+<table>
+<tr><th>항목</th><th>내용</th></tr>
+<tr><td>호스트 OS</td><td>WSL2 / Linux (권장 타깃)</td></tr>
+<tr><td>컨테이너 런타임</td><td>Docker (데몬 실행 중이어야 함)</td></tr>
+<tr><td>Python</td><td>3.12 이상</td></tr>
+</table>
+<div class="note warn"><b>Windows + WSL2 사용자:</b> 오케스트레이터를 Ubuntu(WSL2) 안에서 돌리려면 Docker Desktop → <b>Settings → Resources → WSL Integration</b>에서 사용하는 배포판(예: Ubuntu)을 켜야 <code>docker</code> 명령이 배포판 안에서 잡힙니다. 또한 배포판에 <code>python3-pip</code>/<code>python3-venv</code>가 필요할 수 있습니다(<code>sudo apt install -y python3-pip python3-venv</code>).</div>
+</section>
+
+<section id="install">
+<h2><span class="num">2</span>설치</h2>
+<pre><code><span class="cmt"># 저장소 루트에서</span>
+pip install -e .
+
+<span class="cmt"># 개발/테스트까지 함께</span>
+pip install -e <span class="s">".[dev]"</span>
+pytest -m <span class="s">"not integration"</span></code></pre>
+<p class="muted">설치하면 <code>agentpod</code> 콘솔 명령이 생깁니다.</p>
+</section>
+
+<section id="quickstart">
+<h2><span class="num">3</span>빠른 시작</h2>
+<ol class="steps">
+  <li><b>이미지 빌드</b> (최초 1회, 몇 분 소요)
+    <pre><code>agentpod build</code></pre></li>
+  <li><b>프로젝트로 이동</b>
+    <pre><code><span class="k">cd</span> /path/to/your/project</code></pre></li>
+  <li><b>인증 준비</b> — <code>.env</code>에 API 키를 넣거나(§5), 아래 실행 후 컨테이너 안에서 <code>claude login</code>.</li>
+  <li><b>에이전트 실행</b> — 컨테이너를 스폰/재사용하고 Claude Code 대화형 세션 진입
+    <pre><code>agentpod run</code></pre></li>
+  <li><b>종료</b> — 세션을 빠져나오면(<kbd>Ctrl</kbd>+<kbd>D</kbd> 등) 마지막 세션일 때 컨테이너가 자동으로 멈춥니다.</li>
+</ol>
+</section>
+
+<section id="commands">
+<h2><span class="num">4</span>명령어 <span class="badge">7개</span></h2>
+<div class="cmd">
+  <div class="c">agentpod build [--force]</div><div class="d">에이전트 이미지 빌드. 이미 있으면 skip(<code>--force</code>로 강제 재빌드).</div>
+  <div class="c">agentpod run</div><div class="d">현재 프로젝트의 컨테이너를 스폰/재사용 → Claude Code 대화형 실행.</div>
+  <div class="c">agentpod shell</div><div class="d">같은 컨테이너에 <code>bash</code>로 접속(디버깅·최초 <code>claude login</code>용).</div>
+  <div class="c">agentpod status</div><div class="d">모든 <code>agent-*</code> 컨테이너와 상태, 활성 세션 수 표시.</div>
+  <div class="c">agentpod stop</div><div class="d">현재 프로젝트의 컨테이너를 stop.</div>
+  <div class="c">agentpod rm</div><div class="d">현재 프로젝트의 컨테이너를 stop 후 제거.</div>
+  <div class="c">agentpod context</div><div class="d">현재 프로젝트의 MD 컨텍스트 폴더 경로 출력(없으면 안내).</div>
+</div>
+<p class="muted"><code>stop</code>/<code>rm</code>/<code>context</code>는 인자 없이 쓰면 <b>현재 디렉토리</b> 기준입니다.</p>
+</section>
+
+<section id="auth">
+<h2><span class="num">5</span>인증 — 두 가지 방식 (둘 다 지원)</h2>
+<div class="grid c2">
+  <div class="panel">
+    <h3>① API 키</h3>
+    <p class="muted">프로젝트 루트에 <code>.env</code>를 만들고 키를 넣습니다. 실행 시 자동 주입됩니다.</p>
+    <pre><code><span class="cmt"># .env  (gitignore 됨)</span>
+ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+    <p class="muted"><code>.env.example</code>을 복사해 시작하세요.</p>
+  </div>
+  <div class="panel">
+    <h3>② 대화형 로그인 (구독)</h3>
+    <p class="muted">컨테이너 안에서 한 번만 로그인하면 <code>~/.agent/claude</code>에 저장되어 컨테이너가 죽어도 유지됩니다.</p>
+    <pre><code>agentpod shell
+<span class="cmt"># 컨테이너 안에서</span>
+claude <span class="k">login</span>
+<span class="k">exit</span></code></pre>
+  </div>
+</div>
+<p class="muted">둘이 공존하면 <b>API 키가 우선</b>합니다.</p>
+</section>
+
+<section id="context">
+<h2><span class="num">6</span>컨테이너별 MD 컨텍스트 만들기</h2>
+<p>컨테이너마다 다른 지침·문서를 보게 하려면, 그 컨테이너의 컨텍스트 폴더에 <code>.md</code> 파일을 넣기만 하면 됩니다. <b>코드 수정 불필요.</b></p>
+<ol class="steps">
+  <li><b>폴더 경로 확인</b>
+    <pre><code><span class="cmt"># 프로젝트 디렉토리에서</span>
+agentpod context
+<span class="cmt"># → ~/.agent/contexts/&lt;projectId&gt; 경로 출력</span></code></pre></li>
+  <li><b>지침 파일 작성</b> — 그 폴더에 <code>CLAUDE.md</code>를 만들고 에이전트 지침을 씁니다. 참고 문서도 <code>*.md</code>로 함께 둘 수 있습니다.
+    <pre><code>~/.agent/contexts/&lt;projectId&gt;/
+├── CLAUDE.md      <span class="cmt"># 자동으로 세션에 주입됨</span>
+└── design-notes.md</code></pre></li>
+  <li><b>실행</b> — 다음 <code>agentpod run</code>부터 <code>CLAUDE.md</code>의 지침이 자동 반영됩니다(컨테이너 유저 메모리에 <code>@import</code>로 연결).</li>
+</ol>
+<div class="note"><b>독립성:</b> 폴더 하나 = 컨테이너 하나입니다. 다른 컨테이너의 MD를 상속하거나 참조하지 않습니다. 당신 저장소 파일은 전혀 건드리지 않습니다.</div>
+</section>
+
+<section id="multi">
+<h2><span class="num">7</span>여러 컨테이너 다루기</h2>
+<p>각 프로젝트는 경로로 결정된 고유 컨테이너를 갖습니다. 여러 프로젝트를 오가며 자연스럽게 여러 컨테이너를 운용할 수 있습니다.</p>
+<pre><code>cd ~/work/api      &amp;&amp; agentpod run     <span class="cmt"># agent-api-xxxx</span>
+cd ~/work/frontend &amp;&amp; agentpod run     <span class="cmt"># agent-frontend-yyyy</span>
+
+agentpod status                         <span class="cmt"># 전체 목록·상태·세션 수</span>
+cd ~/work/api      &amp;&amp; agentpod stop     <span class="cmt"># 특정 프로젝트만 정리</span></code></pre>
+<p class="muted">같은 프로젝트로 다시 들어가면 동일 컨테이너가 재사용되어 세션·컨텍스트가 이어집니다.</p>
+</section>
+
+<section id="trouble">
+<h2><span class="num">8</span>문제 해결</h2>
+<table>
+<tr><th>증상</th><th>원인 / 해결</th></tr>
+<tr><td><code>Docker is not available</code></td><td>Docker 데몬이 꺼져 있음. Docker Desktop/데몬을 켜고 재시도. WSL2면 배포판 WSL Integration 확인.</td></tr>
+<tr><td>WSL 안에서 <code>docker: command not found</code></td><td>Docker Desktop → Settings → Resources → WSL Integration에서 해당 배포판 토글 ON.</td></tr>
+<tr><td>컨테이너 안 claude가 로그인 요구</td><td>API 키(<code>.env</code>)를 넣거나 <code>agentpod shell</code> → <code>claude login</code>.</td></tr>
+<tr><td>빌드가 느림 (최초)</td><td>정상. ubuntu·Node·claude 설치로 몇 분 소요. 이후 캐시로 빨라짐.</td></tr>
+<tr><td>마운트 파일 권한 오류</td><td>호스트 사용자 uid가 1000이어야 컨테이너 <code>agent</code>(uid 1000)와 정합. WSL2 기본 사용자는 대개 uid 1000.</td></tr>
+<tr><td>컨테이너가 안 멈춤</td><td><code>agentpod status</code>로 활성 세션 확인 → 남은 세션이 있으면 유지됨. 강제 정리는 <code>agentpod rm</code>.</td></tr>
+</table>
+</section>
+
+<section id="security">
+<h2><span class="num">9</span>안전 수칙</h2>
+<div class="note danger"><b>자율 실행 플래그는 컨테이너 안에서만.</b> <code>--dangerously-skip-permissions</code>는 AgentPod가 컨테이너 내부에서만 사용합니다. 호스트에서 직접 이 플래그로 claude를 실행하지 마세요.</div>
+<ul class="muted">
+  <li><code>.env</code>는 커밋하지 마세요(기본 <code>.gitignore</code>에 포함). 비밀 값을 이미지·저장소에 하드코딩하지 마세요.</li>
+  <li>봇/전용 계정으로 최소 권한만 부여하고, 토큰·키는 주기적으로 회전하세요.</li>
+  <li>런처(호스트)를 실행할 수 있는 사용자만 에이전트를 구동할 수 있도록 OS/도커 접근을 통제하세요.</li>
+</ul>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>내부 동작이 궁금하면 <a class="link" href="how-it-works.html">동작 원리 가이드</a>를, 설계 근거는 <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a>를 참고하세요.</p>
+</footer>
+
+</div>
+</body>
+</html>
