@@ -1,10 +1,13 @@
 # AgentPod agent container (BUILD-GUIDE §4.1, Phase 1 slim variant).
 FROM ubuntu:24.04
 
-# LAYER 1 (rarely changes): base deps, locales, tzdata
+# LAYER 1 (rarely changes): base deps, locales, tzdata,
+#   Python + network tools (so agents can write/run test scripts: ping/DHCP/SSID etc.)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl git ca-certificates unzip locales tzdata \
+        python3 python3-pip python3-venv \
+        iputils-ping iproute2 dnsutils \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8
