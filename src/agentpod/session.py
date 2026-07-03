@@ -89,7 +89,10 @@ def install_signal_handlers(cleanup: Callable[[], None]) -> None:
         done["cleaned"] = True
         cleanup()
 
-    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    for name in ("SIGINT", "SIGTERM", "SIGHUP"):
+        sig = getattr(signal, name, None)
+        if sig is None:
+            continue
         try:
             signal.signal(sig, lambda *_: (_run(), os._exit(130)))
         except (ValueError, OSError):

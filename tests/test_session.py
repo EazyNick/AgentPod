@@ -1,7 +1,5 @@
 import os
 
-import pytest
-
 from agentpod import session
 
 
@@ -87,3 +85,21 @@ def test_release_skips_on_last_when_others_active(monkeypatch, tmp_path):
     assert called == []  # other still active
     assert not mine.exists()
     assert other.exists()
+
+
+def test_install_signal_handlers_survives_missing_sighup(monkeypatch):
+    monkeypatch.delattr(session.signal, "SIGHUP", raising=False)
+
+    # Avoid actually replacing the test process's real signal handlers;
+    # just record which signals install_signal_handlers attempts to register.
+    registered = []
+    monkeypatch.setattr(
+        session.signal, "signal", lambda sig, handler: registered.append(sig)
+    )
+
+    # must not raise even if a signal is missing on this platform
+    session.install_signal_handlers(lambda: None)
+
+    assert session.signal.SIGINT in registered
+    assert session.signal.SIGTERM in registered
+    assert not hasattr(session.signal, "SIGHUP")
