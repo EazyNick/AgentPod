@@ -90,6 +90,7 @@
   <a href="#s6">⑥ 첫 실행</a>
   <a href="#verify">동작 확인</a>
   <a href="#trouble">문제 해결</a>
+  <a href="#net">네트워크(mirrored)</a>
 </div></nav>
 
 <section id="why">
@@ -243,8 +244,66 @@ ANTHROPIC_API_KEY=sk-ant-...</code></pre>
 </table>
 </section>
 
+<section id="net">
+<h2><span class="num">9</span>네트워크 (선택) — mirrored 모드로 LAN 노출</h2>
+<p>기본 WSL2는 NAT라 <code>172.x</code> 내부 IP를 받아 LAN(<code>192.168.1.x</code>)에서 직접 접근되지 않습니다. <b>mirrored 모드</b>를 켜면 WSL2가 <b>Windows 호스트의 IP를 그대로 공유</b>하므로, 같은 네트워크의 다른 단말에서 WSL 서비스에 접근할 수 있습니다.</p>
+<div class="note"><b>핵심:</b> mirrored는 WSL에 <u>별도의</u> IP를 주지 않습니다. WSL = Windows와 같은 IP가 됩니다. 그래서 WSL을 <code>192.168.1.100</code>으로 접근하고 싶으면 <b>Windows PC 자체의 IP를 192.168.1.100</b>으로 만들면 됩니다.</div>
+
+<p class="muted" style="margin-top:14px">명령을 <b>어느 창</b>에서 치는지 표시:
+<span style="display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff;margin:2px 4px">🪟 Windows PowerShell(관리자)</span>
+<span style="display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#0f9d76;color:#fff;margin:2px 4px">🐧 WSL2 Ubuntu</span>
+<span style="display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#b57614;color:#fff;margin:2px 4px">📡 공유기 / ⚙️ Windows 설정</span>
+</p>
+
+<ol class="steps">
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff;margin-right:8px">🪟 PowerShell</span>버전 확인</h3>
+    <p class="muted">mirrored는 Windows 11 22H2+ / WSL 2.0+ 필요.</p>
+    <pre><code><span class="p">PS&gt;</span> wsl --version   <span class="cmt"># WSL 버전 2.x 이상이면 OK</span></code></pre></li>
+
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#b57614;color:#fff;margin-right:8px">📡/⚙️</span>Windows PC의 IP를 192.168.1.100으로</h3>
+    <p class="muted"><b>(A) 공유기 DHCP 예약</b>(권장): 공유기 관리페이지에서 이 PC의 MAC에 192.168.1.100 예약.</p>
+    <p class="muted"><b>(B) Windows 고정 IP</b> — <span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff">🪟 PowerShell(관리자)</span></p>
+    <pre><code><span class="p">PS&gt;</span> Get-NetAdapter                     <span class="cmt"># 어댑터 이름 확인 (예: 이더넷)</span>
+<span class="p">PS&gt;</span> New-NetIPAddress -InterfaceAlias <span class="s">"이더넷"</span> -IPAddress 192.168.1.100 -PrefixLength 24 -DefaultGateway 192.168.1.1
+<span class="p">PS&gt;</span> Set-DnsClientServerAddress -InterfaceAlias <span class="s">"이더넷"</span> -ServerAddresses 192.168.1.1</code></pre></li>
+
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff;margin-right:8px">🪟 PowerShell</span><code>.wslconfig</code> 작성</h3>
+    <p class="muted">이 파일은 Windows 사용자 폴더(<code>C:\Users\&lt;you&gt;\.wslconfig</code>)에 있습니다. 메모장으로 열어(없으면 생성) 내용을 넣고 저장:</p>
+    <pre><code><span class="p">PS&gt;</span> notepad <span class="s">"$env:USERPROFILE\.wslconfig"</span></code></pre>
+    <pre><code><span class="cmt"># .wslconfig 내용</span>
+[wsl2]
+networkingMode=mirrored
+
+[experimental]
+hostAddressLoopback=true</code></pre></li>
+
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff;margin-right:8px">🪟 PowerShell</span>WSL 재시작</h3>
+    <p class="muted">실행 중이던 WSL 세션은 모두 닫힙니다.</p>
+    <pre><code><span class="p">PS&gt;</span> wsl --shutdown
+<span class="cmt"># 이후 다시 진입</span>
+<span class="p">PS&gt;</span> wsl -d Ubuntu</code></pre></li>
+
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#0f9d76;color:#fff;margin-right:8px">🐧 WSL2</span>적용 확인</h3>
+    <pre><code><span class="p">$</span> ip addr | grep 192.168
+<span class="cmt"># Windows와 같은 192.168.1.100 이 보이면 성공</span></code></pre></li>
+
+  <li><h3><span style="font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;background:#2f6fed;color:#fff;margin-right:8px">🪟 PowerShell(관리자)</span>방화벽 열기</h3>
+    <p class="muted">외부 단말(192.168.1.1)에서 들어오는 포트를 허용(쓰려는 포트로):</p>
+    <pre><code><span class="p">PS&gt;</span> New-NetFirewallRule -DisplayName <span class="s">"WSL inbound 8080"</span> -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8080</code></pre></li>
+</ol>
+
+<div class="note ok"><b>AgentPod와의 연결:</b> mirrored면 에이전트 컨테이너가 포트를 게시(<code>docker run -p 8080:8080</code>)했을 때 그게 WSL localhost = Windows IP에서 열리므로, 다른 단말에서 <code>192.168.1.100:8080</code>으로 바로 접근됩니다. (Phase 1 기본은 bridge 네트워크라 컨테이너 포트는 <code>-p</code>로 노출해야 합니다.)</div>
+
+<table>
+<tr><th>단계</th><th>어디서</th></tr>
+<tr><td>1 · 버전 확인 / 3 · .wslconfig / 4 · 재시작 / 6 · 방화벽</td><td>🪟 Windows PowerShell(관리자)</td></tr>
+<tr><td>2 · PC IP 지정</td><td>📡 공유기 예약 또는 🪟 PowerShell / ⚙️ Windows 설정</td></tr>
+<tr><td>5 · 적용 확인</td><td>🐧 WSL2 Ubuntu</td></tr>
+</table>
+</section>
+
 <section id="ref">
-<h2><span class="num">9</span>명령어 요약</h2>
+<h2><span class="num">10</span>명령어 요약</h2>
 <pre><code><span class="p">$</span> agentpod build [--force]   <span class="cmt"># 이미지 빌드</span>
 <span class="p">$</span> agentpod run              <span class="cmt"># 컨테이너 스폰/재사용 → Claude 대화형</span>
 <span class="p">$</span> agentpod shell            <span class="cmt"># 컨테이너 bash (로그인·디버깅)</span>
