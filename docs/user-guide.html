@@ -105,6 +105,14 @@ pip install -e .
 pip install -e <span class="s">".[dev]"</span>
 pytest -m <span class="s">"not integration"</span></code></pre>
 <p class="muted">설치하면 <code>agentpod</code> 콘솔 명령이 생깁니다.</p>
+<div class="note"><b>어디서 실행하나? — 소스 폴더와 무관합니다.</b>
+설치 후 <code>agentpod</code>는 전역 명령이 됩니다(venv를 쓴다면 그 venv가 활성화된 셸에서). AgentPod 소스가 있는 폴더로 갈 필요가 <b>없습니다</b>. <code>agentpod run</code>은 <b>“지금 있는 디렉토리(cwd)”를 프로젝트로 간주</b>해 컨테이너를 만듭니다.
+<pre><code><span class="cmt"># venv를 쓴다면 새 터미널마다 한 번</span>
+source ~/.venvs/agentpod/bin/activate
+<span class="cmt"># 아무 프로젝트로 이동 → 그 폴더 기준으로 컨테이너</span>
+<span class="k">cd</span> ~/anywhere/my-project
+agentpod run</code></pre>
+즉 컨테이너는 <b>현재 작업 디렉토리의 경로</b>로 결정됩니다. 소스 위치는 상관없습니다.</div>
 </section>
 
 <section id="quickstart">

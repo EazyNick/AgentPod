@@ -166,6 +166,13 @@
 <span class="p">$</span> pytest -m <span class="s">"not integration"</span>
 <span class="cmt"># 33 passed 가 나오면 정상</span></code></pre></li>
 </ol>
+<div class="note ok"><b>설치 후엔 소스 폴더와 무관하게 어디서나 실행됩니다.</b>
+<code>agentpod</code>는 venv 안에 설치되므로, <b>venv가 활성화된 셸이면 어느 디렉토리에서든</b> 쓸 수 있습니다. <code>~/dev/AgentPod</code>로 돌아갈 필요가 없습니다 — <code>agentpod run</code>은 <b>현재 있는 폴더(cwd)를 프로젝트로 간주</b>합니다.
+<pre><code><span class="cmt"># 새 터미널을 열 때마다 venv 활성화 한 번</span>
+<span class="p">$</span> source ~/.venvs/agentpod/bin/activate
+<span class="p">(agentpod) $</span> cd ~/work/my-project     <span class="cmt"># 아무 프로젝트</span>
+<span class="p">(agentpod) $</span> agentpod run             <span class="cmt"># 그 폴더 기준 컨테이너</span></code></pre>
+<span class="muted">매번 활성화가 번거롭다면 <code>~/.bashrc</code> 끝에 <code>source ~/.venvs/agentpod/bin/activate</code> 한 줄을 넣어 자동화할 수 있습니다.</span></div>
 </section>
 
 <section id="s5">
