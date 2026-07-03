@@ -27,8 +27,10 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
 RUN npm install -g @anthropic-ai/claude-code
 
 # LAYER 5 (frequently): entrypoint
+#   Strip any CR (Windows checkouts can introduce CRLF; a CRLF shebang breaks exec).
 COPY docker/agent-entrypoint.sh /usr/local/bin/agent-entrypoint.sh
-RUN chmod +x /usr/local/bin/agent-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/agent-entrypoint.sh \
+    && chmod +x /usr/local/bin/agent-entrypoint.sh
 
 USER agent
 WORKDIR /project
