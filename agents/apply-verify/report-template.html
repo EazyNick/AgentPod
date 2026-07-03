@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI 변경 · DUT 검증 리포트</title>
+<!--
+  apply-verify 에이전트용 리포트 템플릿.
+  이 파일을 복사해 report.html 로 저장하고, {{...}} 자리표시자와 <tbody>의 예시 행을 실제 값으로 채운다.
+  UI 변경 하나하나, dut/host에서 실행한 모든 명령을 빠짐없이 기록한다.
+-->
+<style>
+  :root{--bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--ink:#e6e8ec;--muted:#9aa3b2;
+    --line:#2a2f3a;--accent:#6ea8fe;--ok:#7ee7c7;--fail:#f2777a;--warn:#f0b45f}
+  @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--panel:#fff;--panel2:#f0f2f5;--ink:#1b1f27;
+    --muted:#5b6472;--line:#e2e6ec;--accent:#2f6fed;--ok:#0f9d76;--fail:#c23b3b;--warn:#b57614}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.6 system-ui,-apple-system,"Segoe UI","Noto Sans KR",sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:32px 20px 80px}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px}
+  h2{font-size:18px;margin:34px 0 8px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  .kpi{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+  .kpi div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;flex:1 1 140px}
+  .kpi b{display:block;font-size:24px}.kpi span{color:var(--muted);font-size:12px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600;white-space:nowrap}
+  code{font-family:ui-monospace,Consolas,monospace;background:var(--panel2);border:1px solid var(--line);
+    border-radius:6px;padding:1px 6px;font-size:.9em}
+  .tag{font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px}
+  .pass{background:color-mix(in srgb,var(--ok) 22%,transparent);color:var(--ok)}
+  .fail{background:color-mix(in srgb,var(--fail) 20%,transparent);color:var(--fail)}
+  .loc{font-size:11.5px;font-weight:700;padding:1px 7px;border-radius:6px;color:#fff}
+  .loc.dut{background:#2f6fed}.loc.host{background:#0f9d76}
+  .banner{border-left:3px solid var(--fail);background:var(--panel);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0;color:var(--fail);font-weight:600}
+  footer{margin-top:40px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>UI 변경 · DUT 검증 리포트</h1>
+  <div class="sub">DUT: {{DUT_MODEL}} ({{DUT_IP}}) · 생성: {{TIMESTAMP}} · 담당: apply-verify</div>
+
+  <!-- 실패가 있으면 아래 배너 표시, 없으면 삭제 -->
+  <div class="banner">⚠ 실패 {{FAIL_COUNT}}건 — 아래 실패 항목 확인 필요</div>
+
+  <div class="kpi">
+    <div><b>{{CHANGE_COUNT}}</b><span>UI 변경</span></div>
+    <div><b>{{CMD_COUNT}}</b><span>실행 명령</span></div>
+    <div><b>{{PASS_COUNT}}</b><span>통과</span></div>
+    <div><b>{{FAIL_COUNT}}</b><span>실패</span></div>
+  </div>
+
+  <h2>1. UI 변경 내역 (동작 단위)</h2>
+  <table>
+    <thead><tr><th>#</th><th>화면 / 요소</th><th>이전값 → 이후값</th><th>조작</th><th>사양 근거</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>{{화면/요소}}</td><td>{{before}} → {{after}}</td><td>{{조작}}</td><td>{{사양 조항}}</td></tr>
+    </tbody>
+  </table>
+
+  <h2>2. 실행 명령 로그 (DUT / Host)</h2>
+  <table>
+    <thead><tr><th>#</th><th>위치</th><th>명령어</th><th>출력 요약</th><th>결과</th><th>시각</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><span class="loc dut">dut</span></td>
+        <td><code>{{command}}</code></td>
+        <td>{{output_summary}}</td>
+        <td><span class="tag pass">pass</span></td>
+        <td>{{hh:mm:ss}}</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><span class="loc host">host</span></td>
+        <td><code>ping -c 4 {{DUT_IP}}</code></td>
+        <td>{{4 received, 0% loss}}</td>
+        <td><span class="tag pass">pass</span></td>
+        <td>{{hh:mm:ss}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. 테스트 결과 (ping / SSID / DHCP …)</h2>
+  <table>
+    <thead><tr><th>#</th><th>테스트</th><th>대상</th><th>기대값</th><th>실제값</th><th>판정</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ping</td><td>{{DUT_IP}}</td><td>0% loss</td><td>{{actual}}</td><td><span class="tag pass">pass</span></td></tr>
+      <tr><td>2</td><td>SSID 연결</td><td>{{ssid}}</td><td>연결/활성</td><td>{{actual}}</td><td><span class="tag pass">pass</span></td></tr>
+      <tr><td>3</td><td>DHCP</td><td>{{range}}</td><td>임대 획득</td><td>{{actual}}</td><td><span class="tag fail">fail</span></td></tr>
+    </tbody>
+  </table>
+
+  <footer>AgentPod · apply-verify 자동 생성 리포트 · 원자료: run-log.md</footer>
+
+</div>
+</body>
+</html>
