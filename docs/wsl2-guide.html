@@ -184,6 +184,20 @@
 <span class="cmt"># 완료 후 확인</span>
 <span class="p">$</span> docker run --rm agentpod:latest bash -lc <span class="s">"claude --version &amp;&amp; whoami &amp;&amp; id -u"</span>
 <span class="cmt"># 예: 2.1.199 (Claude Code) / agent / 1000</span></code></pre>
+
+<div class="note ok"><b>Python·설치 없이 Docker만으로 (가장 간단)</b>
+§3~§4(파이썬/CLI 설치)를 건너뛰고, 이미지 빌드 + 실행 두 줄로 끝낼 수 있습니다.
+<pre><code><span class="cmt"># 1) 이미지 만들기 — AgentPod 저장소 폴더에서 1회</span>
+<span class="p">$</span> docker build -t agentpod:latest .
+
+<span class="cmt"># 2) 실행 — 작업할 폴더(예: agents/apply-verify)에서</span>
+<span class="p">$</span> mkdir -p ~/.agent/claude
+<span class="p">$</span> docker run --rm -it -v "$PWD":/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    agentpod:latest claude --dangerously-skip-permissions</code></pre>
+폴더의 <code>CLAUDE.md</code>·<code>.mcp.json</code> 자동 인식 + superpowers 자동 설치. 별칭으로 짧게:
+<pre><code><span class="p">$</span> echo 'agentpod(){ mkdir -p ~/.agent/claude; docker run --rm -it -v "$PWD":/project -w /project -v ~/.agent/claude:/home/agent/.claude agentpod:latest claude --dangerously-skip-permissions "$@"; }' >> ~/.bashrc &amp;&amp; source ~/.bashrc</code></pre>
+<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 등 <code>agentpod</code> CLI 편의 기능은 빠집니다.</span></div>
 </section>
 
 <section id="s6">
