@@ -76,7 +76,7 @@
     <span class="pill">Windows 11 + WSL2</span>
     <span class="pill">Ubuntu 배포판</span>
     <span class="pill">Docker Desktop (WSL 백엔드)</span>
-    <span class="pill">Python 3.12+</span>
+    <span class="pill">Python 3.10+</span>
   </div>
 </header>
 
@@ -140,8 +140,8 @@
 
 <section id="s3">
 <h2><span class="num">3</span>Python 준비</h2>
-<p>AgentPod 오케스트레이터는 Python 3.12+가 필요합니다. Ubuntu의 Python이 <code>pip</code>/<code>venv</code> 없이 최소 설치된 경우가 있으니 함께 설치합니다.</p>
-<pre><code><span class="p">$</span> python3 --version            <span class="cmt"># 3.12 이상인지 확인</span>
+<p>AgentPod 오케스트레이터는 Python 3.10+가 필요합니다. Ubuntu의 Python이 <code>pip</code>/<code>venv</code> 없이 최소 설치된 경우가 있으니 함께 설치합니다.</p>
+<pre><code><span class="p">$</span> python3 --version            <span class="cmt"># 3.10 이상인지 확인</span>
 <span class="p">$</span> sudo apt install -y python3-pip python3-venv git</code></pre>
 <div class="note"><b>가상환경(venv) 권장.</b> 시스템 파이썬을 어지럽히지 않도록 프로젝트 전용 venv를 씁니다.
 <pre><code><span class="p">$</span> python3 -m venv ~/.venvs/agentpod
@@ -158,10 +158,11 @@
 <span class="p">$</span> git clone &lt;repo-url&gt; AgentPod      <span class="cmt"># 또는 기존 소스를 복사</span>
 <span class="p">$</span> cd AgentPod</code></pre>
     <p class="muted">Windows 쪽에 이미 소스가 있다면 리눅스로 복사: <code>cp -r /mnt/c/Users/&lt;you&gt;/Downloads/Project/AgentPod ~/AgentPod</code></p></li>
-  <li><h3>패키지 설치</h3>
-    <pre><code><span class="p">$</span> pip install -e <span class="s">"."</span>
-<span class="cmt"># 개발/테스트까지</span>
-<span class="p">$</span> pip install -e <span class="s">".[dev]"</span></code></pre></li>
+  <li><h3>설치 (한 번에)</h3>
+    <p class="muted">시스템 패키지 + <code>agentpod</code> 명령(PATH 등록) + 이미지 빌드까지 자동:</p>
+    <pre><code><span class="p">$</span> ./install.sh                 <span class="cmt"># 빌드까지 한 번에</span>
+<span class="p">$</span> ./install.sh --no-build      <span class="cmt"># 이미지 빌드는 나중에</span></code></pre>
+    <p class="muted">현재 셸에서 <code>agentpod</code>가 안 잡히면 새 터미널 또는 <code>source ~/.bashrc</code>. §3(venv)를 건너뛰고 이 스크립트만 써도 됩니다.</p></li>
   <li><h3>설치 확인 &amp; 유닛 테스트</h3>
     <pre><code><span class="p">$</span> agentpod --help
 <span class="p">$</span> pytest -m <span class="s">"not integration"</span>

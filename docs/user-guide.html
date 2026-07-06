@@ -98,13 +98,15 @@
 
 <section id="install">
 <h2><span class="num">2</span>설치</h2>
+<p class="muted"><b>한 번에 설치</b> — 시스템 패키지 + <code>agentpod</code> 명령(PATH 등록) + 이미지 빌드까지 자동:</p>
 <pre><code><span class="cmt"># 저장소 루트에서</span>
-pip install -e .
-
-<span class="cmt"># 개발/테스트까지 함께</span>
+./install.sh                 <span class="cmt"># 빌드까지</span>
+./install.sh --no-build      <span class="cmt"># 이미지 빌드는 나중에</span></code></pre>
+<p class="muted">설치 후 현재 셸에서 <code>agentpod</code>가 안 잡히면 새 터미널을 열거나 <code>source ~/.bashrc</code>.</p>
+<pre><code><span class="cmt"># (선택) 스크립트 없이 수동 설치</span>
+python3 -m venv ~/.venvs/agentpod &amp;&amp; source ~/.venvs/agentpod/bin/activate
 pip install -e <span class="s">".[dev]"</span>
 pytest -m <span class="s">"not integration"</span></code></pre>
-<p class="muted">설치하면 <code>agentpod</code> 콘솔 명령이 생깁니다.</p>
 <div class="note"><b>어디서 실행하나? — 소스 폴더와 무관합니다.</b>
 설치 후 <code>agentpod</code>는 전역 명령이 됩니다(venv를 쓴다면 그 venv가 활성화된 셸에서). AgentPod 소스가 있는 폴더로 갈 필요가 <b>없습니다</b>. <code>agentpod run</code>은 <b>“지금 있는 디렉토리(cwd)”를 프로젝트로 간주</b>해 컨테이너를 만듭니다.
 <pre><code><span class="cmt"># venv를 쓴다면 새 터미널마다 한 번</span>
