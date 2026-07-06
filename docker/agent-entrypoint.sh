@@ -1,9 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 
-# 1. Git: allow operating on the bind-mounted project regardless of owner.
-#    (Dedicated bot identity is Phase 2.)
-git config --global --add safe.directory '*' || true
+# 1. Git bot identity (BUILD-GUIDE §4.5).
+#    Shared identity comes from the read-only mounted ~/.gitconfig (set once via
+#    `agentpod git-setup`; contains user + safe.directory). We NEVER write that
+#    bind-mounted file here. Per-project .env overrides are applied via git env
+#    vars / a container-local credentials file instead.
+if [ -n "${GIT_BOT_NAME:-}" ]; then
+  export GIT_AUTHOR_NAME="$GIT_BOT_NAME" GIT_COMMITTER_NAME="$GIT_BOT_NAME"
+fi
+if [ -n "${GIT_BOT_EMAIL:-}" ]; then
+  export GIT_AUTHOR_EMAIL="$GIT_BOT_EMAIL" GIT_COMMITTER_EMAIL="$GIT_BOT_EMAIL"
+fi
+if [ -n "${GITHUB_TOKEN:-}" ] && [ ! -f /home/agent/.git-credentials ]; then
+  printf 'https://x-access-token:%s@github.com\n' "$GITHUB_TOKEN" > /home/agent/.git-credentials
+  chmod 600 /home/agent/.git-credentials || true
+  export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=credential.helper GIT_CONFIG_VALUE_0=store
+fi
 
 # 2. Auto-inject per-container MD context into Claude's user memory (§4.11).
 #    Never touches the user's repo — only ~/.claude/CLAUDE.md.

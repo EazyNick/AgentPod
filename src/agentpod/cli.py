@@ -39,7 +39,28 @@ def build_mounts(project_id: str, project_path: str) -> list[Mount]:
     ctx = context_mod.resolve_mount(project_id)
     if ctx is not None:
         mounts.append(Mount(ctx[0], ctx[1], ro=True))
+    # Shared bot git identity (BUILD-GUIDE §4.5) — mounted read-only into every
+    # container (entrypoint must not rewrite a bind-mounted file).
+    mounts.append(Mount(str(paths.gitconfig_path()), "/home/agent/.gitconfig", ro=True))
+    if paths.git_credentials_path().exists():
+        mounts.append(
+            Mount(str(paths.git_credentials_path()), "/home/agent/.git-credentials", ro=True)
+        )
     return mounts
+
+
+def render_gitconfig(name: str, email: str, credential_store: bool) -> str:
+    """Render the shared bot ~/.gitconfig contents."""
+    lines = [
+        "[user]",
+        f"\tname = {name}",
+        f"\temail = {email}",
+        "[safe]",
+        "\tdirectory = *",
+    ]
+    if credential_store:
+        lines += ["[credential]", "\thelper = store"]
+    return "\n".join(lines) + "\n"
 
 
 def _require_docker() -> None:
@@ -157,6 +178,29 @@ def rm(target: str = typer.Argument(".")) -> None:
     _, cname = resolve_target(target)
     docker_ctl.remove(cname)
     typer.echo(f"Removed {cname}.")
+
+
+@app.command("git-setup")
+def git_setup(
+    name: str = typer.Option(..., "--name", help="Bot commit author name."),
+    email: str = typer.Option(..., "--email", help="Bot commit author email."),
+    token: str = typer.Option(
+        None, "--token", help="PAT for push/pull (stored in ~/.agent/git-credentials)."
+    ),
+    host: str = typer.Option("github.com", "--host", help="Git host for the token."),
+) -> None:
+    """Register a shared bot git identity used by ALL agent containers (§4.5)."""
+    paths.ensure_layout()
+    use_cred = token is not None
+    paths.gitconfig_path().write_text(render_gitconfig(name, email, use_cred))
+    if use_cred:
+        cred = paths.git_credentials_path()
+        cred.write_text(f"https://x-access-token:{token}@{host}\n")
+        os.chmod(cred, 0o600)
+    typer.echo(
+        f"Bot git identity saved under {paths.agent_root()} "
+        f"(shared by all containers){' with push token' if use_cred else ''}."
+    )
 
 
 @app.command()

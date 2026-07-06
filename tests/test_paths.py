@@ -34,3 +34,18 @@ def test_ensure_layout_is_idempotent(monkeypatch, tmp_path):
 def test_context_dir_matches_project_id(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
     assert paths.context_dir("myrepo-abc") == tmp_path / "root" / "contexts" / "myrepo-abc"
+
+
+def test_ensure_layout_creates_gitconfig_not_credentials(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    paths.ensure_layout()
+    assert paths.gitconfig_path().is_file()           # created (empty)
+    assert not paths.git_credentials_path().exists()  # only after git-setup
+
+
+def test_ensure_layout_keeps_existing_gitconfig(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    paths.ensure_layout()
+    paths.gitconfig_path().write_text("[user]\n\tname = keep\n")
+    paths.ensure_layout()
+    assert "keep" in paths.gitconfig_path().read_text()
