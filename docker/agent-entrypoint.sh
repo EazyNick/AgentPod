@@ -65,5 +65,15 @@ PY
 #     from the project root (= workdir). Best-effort; never fails the boot.
 python3 /usr/local/bin/agent-skills.py || true
 
+# 3e. mise: trust the project config and install project-declared tools (§4.9).
+#     Global python@3.12 + node are baked in the image; this adds per-project
+#     versions declared in mise.toml / .mise.toml. Best-effort.
+if command -v mise >/dev/null 2>&1; then
+  export MISE_TRUSTED_CONFIG_PATHS="${MISE_TRUSTED_CONFIG_PATHS:-}:$PWD"
+  if [ -f mise.toml ] || [ -f .mise.toml ]; then
+    mise install -y >/dev/null 2>&1 || true
+  fi
+fi
+
 # 4. Hand off to the container command (default: sleep infinity keep-alive).
 exec "$@"

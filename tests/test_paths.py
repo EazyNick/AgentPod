@@ -49,3 +49,13 @@ def test_ensure_layout_keeps_existing_gitconfig(monkeypatch, tmp_path):
     paths.gitconfig_path().write_text("[user]\n\tname = keep\n")
     paths.ensure_layout()
     assert "keep" in paths.gitconfig_path().read_text()
+
+
+def test_tool_creds_dir_default_and_profile(monkeypatch, tmp_path):
+    root = tmp_path / "root"
+    monkeypatch.setenv("AGENT_HOME", str(root))
+    assert paths.tool_creds_dir("claude") == root / "claude"
+    assert paths.tool_creds_dir("codex") == root / "codex"
+    assert paths.tool_creds_dir("claude", "bot") == root / "profiles" / "bot" / "claude"
+    assert paths.claude_json_path("bot") == root / "profiles" / "bot" / "claude.json"
+    assert paths.claude_creds_dir() == root / "claude"  # back-compat

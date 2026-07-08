@@ -17,6 +17,9 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너의 첫 릴리스.
 - **컨테이너 이미지** — `ubuntu:24.04`, Node 22, claude CLI, 비루트 `agent`(uid 1000), `sleep infinity` 대기 + `docker exec` 부착 모델
 
 ### 자율 실행 안전·신원 (Phase 2, 일부)
+- **멀티툴 registry** (§4.10) — `--tool claude|codex|opencode`. 도구별 자율 플래그·크레덴셜 저장소 분리(claude→`~/.agent/claude`, codex→`~/.agent/codex`, opencode→`~/.agent/opencode`)
+- **프로파일** (§4.4) — `--profile`/`AGENT_PROFILE`로 컨테이너별 계정 분리(`agent-<id>--p--<profile>`, `~/.agent/profiles/<name>/<tool>`)
+- **mise** (§4.9) — 이미지에 mise + python 3.12 + node 내장, 프로젝트 `mise.toml`로 버전 추가
 - **리소스 제한** (§4.12) — `--memory`/`--cpus`/`--pids`(CLI) 및 `AGENT_MEMORY`/`AGENT_CPUS`/`AGENT_PIDS_LIMIT`(env). 기본값 **memory 4g · cpus 2 · pids 512** (빈 env = 해제)
 - **봇 git 신원** (§4.5) — `agentpod git-setup`으로 `~/.agent`에 한 번 등록 → 모든 컨테이너 공유
   - HTTPS 토큰 방식 (`git-credentials`)
@@ -50,6 +53,6 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너의 첫 릴리스.
 
 ## 로드맵 (미구현)
 
-- **Phase 2 잔여**: 프로파일 다중 신원(§4.4) · 멀티툴 registry 확장(gemini/codex/opencode, §4.10) · mise 통합(§4.9)
+- **Phase 2 잔여**: (핵심 항목 완료) — gemini 도구는 미포함
 - **Phase 3**: 헤드리스 실행(`-p`) + asyncio 동시성 · worktree 병렬(모델 A, §5.5) · 결과 캡처+커밋/PR · **실행 안전**(타임아웃+kill, 동시성 상한, 감사 로그, 관측성, §5.6) · 고아 GC + 복원력 사다리
 - **Phase 4**: 컨테이너 수명주기 통합 테스트

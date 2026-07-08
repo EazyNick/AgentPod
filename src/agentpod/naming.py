@@ -22,12 +22,13 @@ def project_id(path: str) -> str:
     return f"{base}-{digest}"
 
 
-def container_name(project_id: str) -> str:
-    return f"agent-{project_id}"
+def container_name(project_id: str, profile: str | None = None) -> str:
+    """agent-<projectId>[--p--<profile>]. Same suffix scheme as lock_prefix."""
+    return "agent-" + lock_prefix(project_id, profile)
 
 
 def lock_prefix(project_id: str, profile: str | None = None) -> str:
-    """Reference-counting key. Profiles (Phase 2) get a --p-- suffix."""
+    """Reference-counting key. Profiles get a --p-- suffix."""
     if profile:
         return f"{project_id}--p--{profile}"
     return project_id

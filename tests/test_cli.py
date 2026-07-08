@@ -79,3 +79,26 @@ def test_render_gitconfig():
     assert "directory = *" in out
     assert "helper = store" not in out
     assert "helper = store" in cli.render_gitconfig("b", "e", True)
+
+
+def test_build_mounts_codex_tool(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    conts = {m.container for m in cli.build_mounts("r", str(tmp_path / "repo"), tool="codex")}
+    assert "/home/agent/.codex" in conts
+    assert "/home/agent/.claude" not in conts       # codex, not claude
+    assert "/home/agent/.claude.json" not in conts  # codex has no claude.json
+
+
+def test_build_mounts_profile_changes_creds_host(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    mounts = cli.build_mounts("r", str(tmp_path / "repo"), tool="claude", profile="bot")
+    creds = next(m for m in mounts if m.container == "/home/agent/.claude")
+    assert "profiles" in creds.host and creds.host.endswith("claude")
+    cj = next(m for m in mounts if m.container == "/home/agent/.claude.json")
+    assert "profiles" in cj.host

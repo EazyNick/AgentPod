@@ -22,20 +22,32 @@ def _fail(msg: str) -> None:
     raise typer.Exit(1)
 
 
-def resolve_target(target: str) -> tuple[str, str]:
+def resolve_target(target: str, profile: str | None = None) -> tuple[str, str]:
     """('.' or '') -> cwd. Returns (project_id, container_name)."""
     path = os.getcwd() if target in (".", "") else target
     pid = naming.project_id(path)
-    return pid, naming.container_name(pid)
+    return pid, naming.container_name(pid, profile)
 
 
-def build_mounts(project_id: str, project_path: str) -> list[Mount]:
+def build_mounts(
+    project_id: str,
+    project_path: str,
+    tool: str = registry.DEFAULT_TOOL,
+    profile: str | None = None,
+) -> list[Mount]:
     paths.ensure_layout()
+    tdef = registry.get_tool(tool)
+    creds = paths.tool_creds_dir(tdef.creds_key, profile)
+    creds.mkdir(parents=True, exist_ok=True)
     mounts = [
         Mount(str(Path(project_path).resolve()), f"/project/{project_id}"),
-        Mount(str(paths.claude_creds_dir()), "/home/agent/.claude"),
-        Mount(str(paths.claude_json_path()), "/home/agent/.claude.json"),
+        Mount(str(creds), tdef.creds_container_path),
     ]
+    if tdef.uses_claude_json:
+        cj = paths.claude_json_path(profile)
+        if not cj.exists():
+            cj.write_text("{}\n")
+        mounts.append(Mount(str(cj), "/home/agent/.claude.json"))
     ctx = context_mod.resolve_mount(project_id)
     if ctx is not None:
         mounts.append(Mount(ctx[0], ctx[1], ro=True))
@@ -79,9 +91,13 @@ def _ensure_image() -> None:
 
 
 def ensure_container(
-    project_id: str, project_path: str, resources: config.Resources | None = None
+    project_id: str,
+    project_path: str,
+    resources: config.Resources | None = None,
+    tool: str = registry.DEFAULT_TOOL,
+    profile: str | None = None,
 ) -> str:
-    cname = naming.container_name(project_id)
+    cname = naming.container_name(project_id, profile)
     state = docker_ctl.container_state(cname)
     if state == "running":
         return cname
@@ -97,7 +113,7 @@ def ensure_container(
     docker_ctl.run_detached(
         name=cname,
         image=IMAGE_TAG,
-        mounts=build_mounts(project_id, project_path),
+        mounts=build_mounts(project_id, project_path, tool, profile),
         workdir=workdir,
         env_file=env_file,
         memory=res.memory,
@@ -107,8 +123,8 @@ def ensure_container(
     return cname
 
 
-def _attach(project_id: str, cname: str, cmd: list[str]) -> None:
-    prefix = naming.lock_prefix(project_id)
+def _attach(project_id: str, cname: str, cmd: list[str], profile: str | None = None) -> None:
+    prefix = naming.lock_prefix(project_id, profile)
     lock = session.create_lock(prefix, session.new_session_id())
 
     def _cleanup() -> None:
@@ -136,6 +152,8 @@ def build(force: bool = typer.Option(False, "--force", help="Rebuild even if pre
 _MEM_OPT = typer.Option(None, "--memory", help="Memory cap (e.g. 4g). Default AGENT_MEMORY or 4g.")
 _CPU_OPT = typer.Option(None, "--cpus", help="CPU cap (e.g. 2). Default AGENT_CPUS or 2.")
 _PID_OPT = typer.Option(None, "--pids", help="Max PIDs. Default AGENT_PIDS_LIMIT or 512.")
+_TOOL_OPT = typer.Option(registry.DEFAULT_TOOL, "--tool", help="Tool: claude | codex | opencode.")
+_PROFILE_OPT = typer.Option(None, "--profile", help="Account profile (separate creds). Default AGENT_PROFILE.")
 
 
 def _resources(memory: str | None, cpus: str | None, pids: int | None) -> config.Resources:
@@ -143,9 +161,14 @@ def _resources(memory: str | None, cpus: str | None, pids: int | None) -> config
     return config.merge(config.resource_limits(), memory, cpus, pids)
 
 
+def _profile(opt: str | None) -> str | None:
+    return opt or os.environ.get("AGENT_PROFILE") or None
+
+
 @app.command()
 def run(
-    tool: str = typer.Option(registry.DEFAULT_TOOL, "--tool", help="Tool to run."),
+    tool: str = _TOOL_OPT,
+    profile: str = _PROFILE_OPT,
     memory: str = _MEM_OPT,
     cpus: str = _CPU_OPT,
     pids: int = _PID_OPT,
@@ -154,15 +177,18 @@ def run(
     """Spawn/reuse this project's container and run the tool interactively."""
     _require_docker()
     _ensure_image()
+    prof = _profile(profile)
     tdef = registry.get_tool(tool)
-    pid, cname = resolve_target(".")
-    ensure_container(pid, os.getcwd(), _resources(memory, cpus, pids))
+    pid, cname = resolve_target(".", prof)
+    ensure_container(pid, os.getcwd(), _resources(memory, cpus, pids), tool, prof)
     cmd = [tdef.binary, *tdef.default_flags, *(extra or [])]
-    _attach(pid, cname, cmd)
+    _attach(pid, cname, cmd, prof)
 
 
 @app.command()
 def shell(
+    profile: str = _PROFILE_OPT,
+    tool: str = _TOOL_OPT,
     memory: str = _MEM_OPT,
     cpus: str = _CPU_OPT,
     pids: int = _PID_OPT,
@@ -170,9 +196,10 @@ def shell(
     """Open an interactive bash shell in this project's container."""
     _require_docker()
     _ensure_image()
-    pid, cname = resolve_target(".")
-    ensure_container(pid, os.getcwd(), _resources(memory, cpus, pids))
-    _attach(pid, cname, ["bash"])
+    prof = _profile(profile)
+    pid, cname = resolve_target(".", prof)
+    ensure_container(pid, os.getcwd(), _resources(memory, cpus, pids), tool, prof)
+    _attach(pid, cname, ["bash"], prof)
 
 
 @app.command()
@@ -190,19 +217,19 @@ def status() -> None:
 
 
 @app.command()
-def stop(target: str = typer.Argument(".")) -> None:
+def stop(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> None:
     """Stop a project's container (default: cwd)."""
     _require_docker()
-    _, cname = resolve_target(target)
+    _, cname = resolve_target(target, _profile(profile))
     docker_ctl.stop(cname)
     typer.echo(f"Stopped {cname}.")
 
 
 @app.command()
-def rm(target: str = typer.Argument(".")) -> None:
+def rm(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> None:
     """Stop and remove a project's container (default: cwd)."""
     _require_docker()
-    _, cname = resolve_target(target)
+    _, cname = resolve_target(target, _profile(profile))
     docker_ctl.remove(cname)
     typer.echo(f"Removed {cname}.")
 

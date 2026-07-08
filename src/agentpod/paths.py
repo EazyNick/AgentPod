@@ -15,12 +15,26 @@ def agent_root() -> Path:
     return Path.home() / ".agent"
 
 
-def claude_creds_dir() -> Path:
-    return agent_root() / "claude"
+def profiles_dir() -> Path:
+    return agent_root() / "profiles"
 
 
-def claude_json_path() -> Path:
-    return agent_root() / "claude.json"
+def _base(profile: str | None) -> Path:
+    """Credential root: ~/.agent, or ~/.agent/profiles/<profile> when set (§4.4)."""
+    return profiles_dir() / profile if profile else agent_root()
+
+
+def tool_creds_dir(tool: str, profile: str | None = None) -> Path:
+    """Host credential store for a tool (profile-aware). e.g. ~/.agent/claude."""
+    return _base(profile) / tool
+
+
+def claude_creds_dir(profile: str | None = None) -> Path:
+    return tool_creds_dir("claude", profile)
+
+
+def claude_json_path(profile: str | None = None) -> Path:
+    return _base(profile) / "claude.json"
 
 
 def contexts_dir() -> Path:

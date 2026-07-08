@@ -38,8 +38,21 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
     && mkdir -p /home/agent/.claude /home/agent/context /project \
     && chown -R agent:agent /home/agent /project
 
-# LAYER 4 (occasionally): claude CLI installed globally
-RUN npm install -g @anthropic-ai/claude-code
+# LAYER 4 (occasionally): AI coding CLIs — claude (required) + codex/opencode (best-effort)
+RUN npm install -g @anthropic-ai/claude-code \
+    && (npm install -g @openai/codex || echo "WARN: codex install failed") \
+    && (npm install -g opencode-ai || echo "WARN: opencode install failed")
+
+# LAYER 4b (occasionally): mise toolchain (python 3.12 + node) for the agent user.
+#   Installed at build so it's baked in the image (shared, no runtime download).
+#   Shims on PATH provide python/node; versions match the system ones (low risk).
+USER agent
+ENV PATH="/home/agent/.local/bin:/home/agent/.local/share/mise/shims:${PATH}"
+RUN curl -fsSL https://mise.run | sh \
+    && /home/agent/.local/bin/mise use -g python@3.12 node@22 \
+    && echo 'eval "$(/home/agent/.local/bin/mise activate bash)"' >> /home/agent/.bashrc \
+    || echo "WARN: mise setup failed"
+USER root
 
 # LAYER 5 (frequently): entrypoint + skills installer
 #   Strip any CR (Windows checkouts can introduce CRLF; a CRLF shebang breaks exec).

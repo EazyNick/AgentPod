@@ -67,6 +67,38 @@ export AGENT_MEMORY=8g AGENT_CPUS=4 AGENT_PIDS_LIMIT=1024
 
 > 제한은 컨테이너 **생성 시점**에 적용됩니다(이미 떠 있는 컨테이너엔 미적용 — 필요 시 `agentpod rm` 후 재실행).
 
+## 멀티툴 (claude / codex / opencode)
+
+`--tool`로 실행할 AI 코딩 CLI를 선택합니다. 도구별 자율 플래그·크레덴셜은 registry가 흡수.
+
+```bash
+agentpod run --tool claude     # 기본
+agentpod run --tool codex
+agentpod run --tool opencode
+```
+크레덴셜은 도구별로 분리 저장·영속: claude→`~/.agent/claude`, codex→`~/.agent/codex`, opencode→`~/.agent/opencode`.
+
+## 프로파일 (계정 분리)
+
+`--profile`(또는 `AGENT_PROFILE`)로 컨테이너별 다른 계정(크레덴셜 세트)을 씁니다. 지정 시
+컨테이너명 `agent-<id>--p--<profile>`, 크레덴셜 경로 `~/.agent/profiles/<name>/<tool>`.
+
+```bash
+agentpod run --profile bot            # 봇 계정
+agentpod run                          # 기본(공용) 계정
+```
+
+## mise (툴체인 버전)
+
+이미지에 **mise + python 3.12 + node**가 내장됩니다. 프로젝트 루트에 `mise.toml`을 두면
+부팅 시 선언한 버전을 추가 설치합니다.
+
+```toml
+[tools]
+python = "3.12"
+node = "22"
+```
+
 ## 봇 git 신원 (한 번 등록 → 모든 컨테이너 공유)
 
 자율 에이전트가 사람 계정이 아닌 **전용 봇 신원**으로 커밋·푸시하게 합니다. 한 번 등록하면

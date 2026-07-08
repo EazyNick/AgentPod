@@ -32,6 +32,10 @@ def test_container_name_prefixes():
     assert naming.container_name("myrepo-abc123def456") == "agent-myrepo-abc123def456"
 
 
+def test_container_name_with_profile():
+    assert naming.container_name("myrepo-abc", "bot") == "agent-myrepo-abc--p--bot"
+
+
 def test_lock_prefix_with_and_without_profile():
     assert naming.lock_prefix("myrepo-abc") == "myrepo-abc"
     assert naming.lock_prefix("myrepo-abc", "bot") == "myrepo-abc--p--bot"

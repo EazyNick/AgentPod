@@ -13,9 +13,21 @@ def test_claude_definition_shape():
     assert claude.name == "claude"
     assert claude.binary == "claude"
     assert "--dangerously-skip-permissions" in claude.default_flags
-    assert claude.credential_mounts  # non-empty
-    host, container = claude.credential_mounts[0]
-    assert container == "/home/agent/.claude"
+    assert claude.creds_container_path == "/home/agent/.claude"
+    assert claude.creds_key == "claude"
+    assert claude.uses_claude_json is True
+
+
+def test_codex_and_opencode_registered():
+    codex = registry.get_tool("codex")
+    assert codex.binary == "codex"
+    assert "--dangerously-bypass-approvals-and-sandbox" in codex.default_flags
+    assert codex.creds_container_path == "/home/agent/.codex"
+    assert codex.uses_claude_json is False
+
+    oc = registry.get_tool("opencode")
+    assert oc.binary == "opencode"
+    assert oc.creds_key == "opencode"
 
 
 def test_get_tool_unknown_raises():
