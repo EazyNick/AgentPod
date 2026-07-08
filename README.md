@@ -102,6 +102,7 @@ enabled = true                  # (선택, 기본 true)
 
 - **위치**: 프로젝트 루트(= 컨테이너 작업 디렉토리). `agent.toml`·`skills.toml` 둘 다 읽어 병합.
 - 내부적으로 `claude plugin marketplace add` + `claude plugin install`로 번역됩니다.
+- 자세한 추가 방법(커스텀 스킬·문제 해결): [skills-guide](docs/skills-guide.html)
 
 ## 컨테이너별 MD 컨텍스트
 

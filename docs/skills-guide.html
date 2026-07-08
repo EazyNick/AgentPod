@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — 스킬(플러그인) 추가 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}.note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod</div>
+  <h1>스킬(플러그인) 추가 가이드</h1>
+  <p class="lead">프로젝트 루트에 <b>매니페스트 파일</b>을 두면, 컨테이너가 뜰 때 선언한 Claude Code 스킬(플러그인)을 <b>자동 설치</b>합니다. superpowers는 매니페스트가 없어도 기본으로 설치됩니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">skills.toml / agent.toml</span>
+    <span class="pill">프로젝트 루트</span>
+    <span class="pill">부팅 시 자동 설치</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#what">개요</a>
+  <a href="#where">① 어디에</a>
+  <a href="#schema">② 스키마</a>
+  <a href="#name">③ 이름만 (카탈로그)</a>
+  <a href="#custom">④ 커스텀 스킬</a>
+  <a href="#apply">⑤ 적용·확인</a>
+  <a href="#trouble">문제 해결</a>
+</div></nav>
+
+<section id="what">
+<h2><span class="num">0</span>개요</h2>
+<p>Claude Code 스킬은 <b>플러그인</b>으로 배포되고, 플러그인은 <b>마켓플레이스(= git 저장소)</b>에서 받습니다. AgentPod는 컨테이너 부팅 시 프로젝트 루트의 매니페스트를 읽어 <code>claude plugin marketplace add</code> + <code>claude plugin install</code>을 자동 실행합니다(멱등·best-effort — 실패해도 부팅은 계속).</p>
+<div class="note ok"><b>기본 제공:</b> superpowers는 매니페스트 없이도 항상 설치됩니다. 매니페스트는 <b>추가</b> 스킬을 위한 것입니다.</div>
+</section>
+
+<section id="where">
+<h2><span class="num">1</span>어디에 적나</h2>
+<p><b>프로젝트 루트</b>(= 컨테이너 작업 디렉토리)에 아래 둘 중 하나(또는 둘 다 — 병합됨):</p>
+<table>
+<tr><th>파일</th><th>용도</th></tr>
+<tr><td><code>skills.toml</code></td><td>스킬 목록만 담을 때</td></tr>
+<tr><td><code>agent.toml</code></td><td>다른 설정과 함께 담을 때 (<code>[[skills]]</code> 섹션)</td></tr>
+</table>
+<pre><code>내-프로젝트/
+├── skills.toml        <span class="cmt"># 또는 agent.toml</span>
+├── CLAUDE.md
+└── ...</code></pre>
+<p class="muted"><code>agents/spec-inspect</code>·<code>agents/apply-verify</code> 같은 폴더도 각각 프로젝트 루트이므로, 거기에 두면 그 에이전트에만 적용됩니다.</p>
+</section>
+
+<section id="schema">
+<h2><span class="num">2</span>스키마</h2>
+<pre><code><span class="cmt"># skills.toml (또는 agent.toml)</span>
+[[skills]]
+name = <span class="s">"superpowers"</span>            <span class="cmt"># 필수: 플러그인 이름</span>
+source = <span class="s">"github:org/repo"</span>       <span class="cmt"># 선택: 마켓플레이스 저장소 (카탈로그에 있으면 생략 가능)</span>
+marketplace_name = <span class="s">"..."</span>        <span class="cmt"># 선택: install 시 @이름 (add 출력에서 자동 감지 시도)</span>
+ref = <span class="s">"main"</span>                    <span class="cmt"># 선택: 브랜치/태그</span>
+enabled = true                    <span class="cmt"># 선택: 기본 true (false면 건너뜀)</span></code></pre>
+<table>
+<tr><th>필드</th><th>필수</th><th>설명</th></tr>
+<tr><td><code>name</code></td><td>✅</td><td>플러그인 이름</td></tr>
+<tr><td><code>source</code></td><td>△</td><td>마켓플레이스 저장소(<code>github:org/repo</code> 또는 <code>org/repo</code>). 카탈로그에 없는 스킬은 필수</td></tr>
+<tr><td><code>marketplace_name</code></td><td>—</td><td>install 대상 <code>name@marketplace</code>의 마켓플레이스 이름. 생략 시 add 출력에서 자동 감지</td></tr>
+<tr><td><code>enabled</code></td><td>—</td><td>false면 설치 안 함</td></tr>
+</table>
+</section>
+
+<section id="name">
+<h2><span class="num">3</span>이름만으로 추가 (내장 카탈로그)</h2>
+<p>자주 쓰는 스킬은 <b>이름만</b> 적으면 됩니다. AgentPod 내장 카탈로그가 출처를 대신 채웁니다.</p>
+<pre><code>[[skills]]
+name = <span class="s">"superpowers"</span></code></pre>
+<p class="muted">현재 카탈로그: <code>superpowers</code> → <code>obra/superpowers</code> (마켓플레이스 <code>superpowers-dev</code>). 카탈로그에 없는 스킬은 §4처럼 <code>source</code>를 지정하세요.</p>
+</section>
+
+<section id="custom">
+<h2><span class="num">4</span>커스텀 스킬 추가</h2>
+<ol class="steps">
+  <li><h3>마켓플레이스 저장소 확인</h3>
+    <p class="muted">스킬 제공자의 GitHub 저장소(마켓플레이스)를 확인합니다. 대개 저장소에 <code>.claude-plugin/marketplace.json</code>이 있고, 거기에 <b>마켓플레이스 이름</b>과 포함 플러그인이 선언돼 있습니다.</p></li>
+  <li><h3>매니페스트에 선언</h3>
+    <pre><code>[[skills]]
+name = <span class="s">"my-skill"</span>
+source = <span class="s">"github:org/my-skill-repo"</span>
+<span class="cmt"># marketplace_name = "my-market"   # marketplace.json의 name과 다르면 지정</span></code></pre></li>
+  <li><h3>이름 확인이 어렵다면</h3>
+    <p class="muted"><code>marketplace_name</code>을 비워두면 AgentPod가 <code>marketplace add</code> 출력에서 이름을 자동 감지해 <code>name@감지된이름</code>으로 설치를 시도합니다. 그래도 실패하면 로그에 <code>skipped</code>로 남습니다.</p></li>
+</ol>
+<div class="note"><b>수동 확인 팁:</b> 컨테이너 셸(<code>agentpod shell</code>)에서 <code>claude plugin marketplace add org/repo</code> 후 <code>claude plugin marketplace list</code>로 등록된 이름을, <code>claude plugin install &lt;tab&gt;</code>/문서로 플러그인 이름을 확인할 수 있습니다.</div>
+</section>
+
+<section id="apply">
+<h2><span class="num">5</span>적용 · 확인</h2>
+<pre><code><span class="cmt"># 매니페스트를 둔 프로젝트에서 실행하면 부팅 시 자동 설치</span>
+<span class="p">$</span> agentpod run          <span class="cmt"># (또는 docker run — 프로젝트가 마운트되면 동일)</span>
+
+<span class="cmt"># 컨테이너 안에서 설치 확인</span>
+<span class="p">agent@…$</span> claude plugin list</code></pre>
+<div class="note ok"><b>공유·영속:</b> 설치는 <code>~/.claude</code>(= 호스트 <code>~/.agent/claude</code> 바인드 마운트)에 남아, 같은 계정을 쓰는 컨테이너들이 공유하고 재실행에도 유지됩니다.</div>
+</section>
+
+<section id="trouble">
+<h2><span class="num">6</span>문제 해결</h2>
+<table>
+<tr><th>증상</th><th>원인 / 해결</th></tr>
+<tr><td>설치가 안 됨(<code>skipped</code>)</td><td>마켓플레이스 이름이 안 맞음. <code>marketplace_name</code>을 명시하거나, <code>agentpod shell</code>에서 <code>claude plugin marketplace add</code> 출력의 이름 확인.</td></tr>
+<tr><td>이름만 적었는데 안 됨</td><td>카탈로그에 없는 스킬. <code>source</code>(마켓플레이스 저장소)를 추가하세요.</td></tr>
+<tr><td>네트워크 오류</td><td>마켓플레이스는 git clone으로 받습니다. 컨테이너 아웃바운드 네트워크 필요.</td></tr>
+<tr><td>매니페스트가 안 읽힘</td><td>파일이 <b>프로젝트 루트</b>(컨테이너 작업 디렉토리)에 있는지 확인. <code>agent.toml</code>/<code>skills.toml</code> 철자·TOML 문법 확인.</td></tr>
+<tr><td>비활성화하고 싶음</td><td>해당 항목에 <code>enabled = false</code>.</td></tr>
+</table>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>사용법: <a class="link" href="user-guide.html">사용자 가이드</a> · 내부 동작: <a class="link" href="how-it-works.html">동작 원리</a> · 설계: <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a></p>
+</footer>
+
+</div>
+</body>
+</html>
