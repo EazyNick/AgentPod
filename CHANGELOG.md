@@ -1,0 +1,54 @@
+# Changelog
+
+이 프로젝트의 주요 변경 사항. 섹션 참조는 [BUILD-GUIDE](docs/dev/BUILD-GUIDE.md) 기준.
+
+## [0.1.0] — 2026-07-06
+
+Docker로 격리된 자율 AI 코딩 에이전트 컨테이너의 첫 릴리스. 프로젝트마다 격리된
+컨테이너를 띄우고 그 안에서 Claude Code를 실행합니다.
+
+### 코어 (Phase 1)
+- **CLI (Typer)**: `build` / `run` / `shell` / `status` / `stop` / `rm` / `context` / `git-setup`
+- **결정적 컨테이너 이름** — 경로 해시 기반(`agent-<basename>-<sha256[:12]>`), 같은 프로젝트는 컨테이너 재사용 (§4.3)
+- **세션 수명주기** — 락파일 + 레퍼런스 카운팅 + 크래시 복구(`os.kill`) + 시그널 정리, 마지막 세션 종료 시 자동 stop (§4.3)
+- **크레덴셜 격리** — 사람 `~/.claude`가 아닌 `~/.agent/claude` 바인드 마운트 (§4.4)
+- **인증 2방식** — `.env`의 `ANTHROPIC_API_KEY` 또는 대화형 `claude login`(바인드 마운트로 영속)
+- **컨테이너별 MD 컨텍스트** — `~/.agent/contexts/<id>/CLAUDE.md`를 유저 메모리에 `@import`로 자동 주입 (§4.11)
+- **컨테이너 이미지** — `ubuntu:24.04`, Node 22, claude CLI, 비루트 `agent`(uid 1000), `sleep infinity` 대기 + `docker exec` 부착 모델
+
+### 자율 실행 안전·신원 (Phase 2, 일부)
+- **리소스 제한** (§4.12) — `--memory`/`--cpus`/`--pids`(CLI) 및 `AGENT_MEMORY`/`AGENT_CPUS`/`AGENT_PIDS_LIMIT`(env). 기본값 **memory 4g · cpus 2 · pids 512** (빈 env = 해제)
+- **봇 git 신원** (§4.5) — `agentpod git-setup`으로 `~/.agent`에 한 번 등록 → 모든 컨테이너 공유
+  - HTTPS 토큰 방식 (`git-credentials`)
+  - **SSH 방식** — `openssh-client` 내장, `~/.agent/ssh` 마운트, `GIT_SSH_COMMAND` 자동 설정 (Bitbucket/GitLab/GitHub)
+  - 프로젝트별 `.env` 오버라이드(`GIT_BOT_NAME`/`GIT_BOT_EMAIL`/`GITHUB_TOKEN`)
+
+### 에이전트 도구
+- **superpowers 플러그인** 부팅 시 자동 설치(멱등, `~/.agent/claude`에 영속·공유)
+- **playwright MCP** (`.mcp.json`) + Chromium — DUT 웹 UI 자동화
+- **네트워크 테스트 도구** — `nmap` `iperf3` `arp-scan` `tcpdump` `traceroute` `mtr` `nc` `iw` `wpa_supplicant` `dhclient` `dig` 등 + Python `scapy`/`requests`
+- **python3** 내장 — 에이전트가 테스트 스크립트를 직접 작성·실행 (ping/DHCP/SSID 등)
+
+### 설치 / 실행
+- **`install.sh`** — 원커맨드 설치(시스템 패키지 + CLI PATH 등록 + 이미지 빌드), Linux/WSL2/라즈베리파이
+- **Python 하한 3.10** — Debian/라즈베리파이 OS에서 추가 파이썬 설치 없이 동작
+- **Docker-only 실행** — `docker build` + `docker run` 한 줄(별칭 지원). *리소스 제한 기본값은 이 경로에선 자동 적용 안 됨 → docker 플래그 직접 지정*
+
+### 에이전트 파이프라인 (`agents/`)
+- **`spec-inspect`** — 사양 확인 + UI 검사 → 테스트 계획(기본: 모든 UI)
+- **`apply-verify`** — UI 변경 + DUT 검증 동시 진행 → HTML 리포트(변경·명령 전량 기록)
+- 사용자 **의도 기반 트리거** ("스펙 확인/테스트 해줘" 등, 사양 있을 때만 테스트)
+
+### 문서 (`docs/*.html`)
+- `how-it-works` (동작 원리) · `user-guide` · `wsl2-guide`(네트워크 mirrored 포함) · `git-identity-guide` · `bitbucket-ssh-guide`
+
+### 테스트
+- pytest 유닛 45개 (naming/paths/registry/context/session/docker_ctl/cli/config)
+
+---
+
+## 로드맵 (미구현)
+
+- **Phase 2 잔여**: skills 매니페스트 선언적 설치(§4.8) · 프로파일 다중 신원(§4.4) · 멀티툴 registry 확장(gemini/codex/opencode, §4.10) · mise 통합(§4.9)
+- **Phase 3**: 헤드리스 실행(`-p`) + asyncio 동시성 · worktree 병렬(모델 A, §5.5) · 결과 캡처+커밋/PR · **실행 안전**(타임아웃+kill, 동시성 상한, 감사 로그, 관측성, §5.6) · 고아 GC + 복원력 사다리
+- **Phase 4**: 컨테이너 수명주기 통합 테스트

@@ -132,7 +132,7 @@ docker run --rm -it -v "$PWD":/project -w /project \
 그 폴더의 <code>CLAUDE.md</code>·<code>.mcp.json</code>을 자동으로 읽고, superpowers도 자동 설치됩니다. 매번 길게 치기 싫으면 별칭 한 줄:
 <pre><code>echo 'agentpod(){ mkdir -p ~/.agent/claude; docker run --rm -it -v "$PWD":/project -w /project -v ~/.agent/claude:/home/agent/.claude agentpod:latest claude --dangerously-skip-permissions "$@"; }' >> ~/.bashrc &amp;&amp; source ~/.bashrc
 <span class="cmt"># 이후: 작업 폴더에서   agentpod</span></code></pre>
-<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 같은 <code>agentpod</code> CLI 편의 기능은 빠집니다. 그 기능이 필요하면 아래 정식 설치를 쓰세요.</span></div>
+<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 같은 <code>agentpod</code> CLI 편의 기능은 빠집니다. 그 기능이 필요하면 아래 정식 설치를 쓰세요. 또 <b>리소스 제한 기본값도 자동 적용되지 않으니</b> docker run에 <code>--memory 4g --cpus 2 --pids-limit 512</code>를 직접 붙이세요(§4).</span></div>
 
 <ol class="steps">
   <li><b>이미지 빌드</b> (최초 1회, 몇 분 소요)
@@ -150,7 +150,7 @@ docker run --rm -it -v "$PWD":/project -w /project \
 <h2><span class="num">4</span>명령어 <span class="badge">7개</span></h2>
 <div class="cmd">
   <div class="c">agentpod build [--force]</div><div class="d">에이전트 이미지 빌드. 이미 있으면 skip(<code>--force</code>로 강제 재빌드).</div>
-  <div class="c">agentpod run</div><div class="d">현재 프로젝트의 컨테이너를 스폰/재사용 → Claude Code 대화형 실행.</div>
+  <div class="c">agentpod run</div><div class="d">현재 프로젝트의 컨테이너를 스폰/재사용 → Claude Code 대화형 실행. <code>--memory/--cpus/--pids</code>로 리소스 제한(아래).</div>
   <div class="c">agentpod shell</div><div class="d">같은 컨테이너에 <code>bash</code>로 접속(디버깅·최초 <code>claude login</code>용).</div>
   <div class="c">agentpod status</div><div class="d">모든 <code>agent-*</code> 컨테이너와 상태, 활성 세션 수 표시.</div>
   <div class="c">agentpod stop</div><div class="d">현재 프로젝트의 컨테이너를 stop.</div>
@@ -158,6 +158,26 @@ docker run --rm -it -v "$PWD":/project -w /project \
   <div class="c">agentpod context</div><div class="d">현재 프로젝트의 MD 컨텍스트 폴더 경로 출력(없으면 안내).</div>
 </div>
 <p class="muted"><code>stop</code>/<code>rm</code>/<code>context</code>는 인자 없이 쓰면 <b>현재 디렉토리</b> 기준입니다.</p>
+
+<h3 style="margin-top:26px">리소스 제한 (폭주 방지)</h3>
+<p>자율 실행이 호스트를 마비시키지 않도록 컨테이너에 메모리·CPU·PID 상한을 겁니다.</p>
+<table>
+<tr><th>항목</th><th>기본값</th><th>변경 방법</th></tr>
+<tr><td>메모리</td><td><code>4g</code></td><td><code>--memory</code> / <code>AGENT_MEMORY</code></td></tr>
+<tr><td>CPU</td><td><code>2</code></td><td><code>--cpus</code> / <code>AGENT_CPUS</code></td></tr>
+<tr><td>PID 수</td><td><code>512</code></td><td><code>--pids</code> / <code>AGENT_PIDS_LIMIT</code></td></tr>
+</table>
+<p><b>① <code>agentpod run</code>으로 실행할 때</b> — 기본값이 자동 적용되고, 옵션/환경변수로 덮어씀:</p>
+<pre><code><span class="cmt"># 실행마다</span>
+agentpod run --memory 8g --cpus 4 --pids 1024
+<span class="cmt"># 호스트 기본값 (빈 값 = 해당 제한 해제)</span>
+export AGENT_MEMORY=8g AGENT_CPUS=4 AGENT_PIDS_LIMIT=1024</code></pre>
+<p><b>② <code>docker run</code>만으로 실행할 때</b> — agentpod 오케스트레이터를 안 거치므로 <b>기본값이 자동 적용되지 않습니다</b>. docker 플래그를 직접 붙이세요:</p>
+<pre><code>docker run --rm -it --memory 4g --cpus 2 --pids-limit 512 \
+  -v <span class="s">"$PWD"</span>:/project -w /project \
+  -v ~/.agent/claude:/home/agent/.claude \
+  agentpod:latest claude --dangerously-skip-permissions</code></pre>
+<div class="note"><b>주의:</b> 제한은 컨테이너 <b>생성 시점</b>에만 적용됩니다. 이미 떠 있는 컨테이너의 한계를 바꾸려면 <code>agentpod rm</code>(또는 <code>docker rm</code>) 후 다시 실행하세요.</div>
 </section>
 
 <section id="auth">

@@ -197,7 +197,7 @@
     agentpod:latest claude --dangerously-skip-permissions</code></pre>
 폴더의 <code>CLAUDE.md</code>·<code>.mcp.json</code> 자동 인식 + superpowers 자동 설치. 별칭으로 짧게:
 <pre><code><span class="p">$</span> echo 'agentpod(){ mkdir -p ~/.agent/claude; docker run --rm -it -v "$PWD":/project -w /project -v ~/.agent/claude:/home/agent/.claude agentpod:latest claude --dangerously-skip-permissions "$@"; }' >> ~/.bashrc &amp;&amp; source ~/.bashrc</code></pre>
-<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 등 <code>agentpod</code> CLI 편의 기능은 빠집니다.</span></div>
+<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 등 <code>agentpod</code> CLI 편의 기능은 빠집니다. 리소스 제한 기본값도 자동 적용되지 않으니 docker run에 <code>--memory 4g --cpus 2 --pids-limit 512</code>를 직접 붙이세요.</span></div>
 </section>
 
 <section id="s6">
