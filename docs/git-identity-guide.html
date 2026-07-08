@@ -77,9 +77,8 @@
 <nav class="toc"><div class="tocscroll">
   <a href="#why">왜 봇 신원</a>
   <a href="#pat">① PAT 발급</a>
-  <a href="#a">② 방법 A · git-setup</a>
-  <a href="#b1">③ 방법 B-1 · env</a>
-  <a href="#b2">④ 방법 B-2 · 파일</a>
+  <a href="#host">② 호스트 등록 (권장)</a>
+  <a href="#env">③ 환경변수 (대안)</a>
   <a href="#verify">확인</a>
   <a href="#security">보안</a>
 </div></nav>
@@ -110,43 +109,22 @@
 <div class="note warn">토큰은 비밀입니다. 저장소·이미지에 넣지 마세요. 아래 방식들은 모두 토큰을 저장소 밖(<code>~/.agent</code>)이나 런타임 env로만 다룹니다.</div>
 </section>
 
-<section id="a">
-<h2><span class="num">2</span>방법 A — <code>agentpod git-setup</code> <span class="badge cli">권장</span></h2>
-<p>agentpod CLI를 설치했다면(정식 설치), <b>한 번 등록 → 모든 컨테이너 공유</b>가 가장 간단합니다.</p>
+<section id="host">
+<h2><span class="num">2</span>호스트에 등록 (공유) <span class="badge cli">가장 추천</span></h2>
+<p>봇 신원을 <b>호스트의 <code>~/.agent</code>에 한 번 저장</b>해두면, 이후 뜨는 <b>모든 컨테이너가 자동으로 공유</b>합니다(로그인·크레덴셜과 동일 원리). 한 번만 하면 되고, 컨테이너 안에서 아무것도 안 해도 됩니다. 아래 둘 중 편한 방식 — <b>결과(호스트에 <code>gitconfig</code>/<code>git-credentials</code> 생성)는 동일</b>합니다.</p>
+
+<h3>2-A. agentpod CLI가 있으면 — 한 줄</h3>
 <pre><code><span class="cmt"># 호스트에서 1회</span>
 <span class="p">$</span> agentpod git-setup \
     --name <span class="s">"agent-bot"</span> \
     --email <span class="s">"agent-bot@users.noreply.github.com"</span> \
-    --token <span class="s">&lt;PAT&gt;</span>          <span class="cmt"># 생략 시 커밋 신원만 설정</span></code></pre>
-<p>저장 위치(모든 컨테이너가 읽기전용으로 마운트):</p>
-<table>
-<tr><th>파일</th><th>내용</th></tr>
-<tr><td><code>~/.agent/gitconfig</code></td><td>user.name/email + safe.directory (+ credential.helper)</td></tr>
-<tr><td><code>~/.agent/git-credentials</code></td><td>토큰 (chmod 600, 토큰 줬을 때만)</td></tr>
-</table>
-<pre><code><span class="cmt"># 이후 그냥 실행 — 신원이 자동으로 들어가 있음</span>
-<span class="p">$</span> cd 프로젝트
-<span class="p">$</span> agentpod run</code></pre>
-<div class="note ok"><b>공유됨:</b> 로그인·크레덴셜과 동일하게 <code>~/.agent</code>에 저장되어, 이후 뜨는 모든 컨테이너가 같은 봇 신원을 씁니다. 다시 등록할 필요 없음.</div>
-</section>
+    --token <span class="s">&lt;PAT&gt;</span>          <span class="cmt"># 생략 시 커밋 신원만 설정</span>
 
-<section id="b1">
-<h2><span class="num">3</span>방법 B-1 — <code>docker run -e</code> (환경변수) <span class="badge host">Docker만</span></h2>
-<p>agentpod CLI 없이 <code>docker run</code>만 쓸 때 가장 간단. 호스트에서 값을 env로 넘기면 entrypoint가 적용합니다.</p>
-<pre><code><span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
-    -v ~/.agent/claude:/home/agent/.claude \
-    -e GIT_BOT_NAME=<span class="s">"agent-bot"</span> \
-    -e GIT_BOT_EMAIL=<span class="s">"agent-bot@users.noreply.github.com"</span> \
-    -e GITHUB_TOKEN=<span class="s">"&lt;PAT&gt;"</span> \
-    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
-<p class="muted"><code>.env</code> 파일에 같은 키를 넣고 <code>--env-file .env</code>로 줘도 동일합니다.</p>
-<div class="note"><b>참고:</b> 이 방식은 커밋 신원을 <b>git 환경변수</b>(<code>GIT_AUTHOR_*</code>/<code>GIT_COMMITTER_*</code>)로 적용합니다. 그래서 <code>git config user.name</code>엔 안 보이지만 <b>실제 커밋 작성자는 봇으로</b> 찍힙니다. 그 실행에만 적용(공유 아님).</div>
-</section>
+<span class="cmt"># 이후 그냥 실행 — 신원이 자동으로 들어가 있음</span>
+<span class="p">$</span> cd 프로젝트 &amp;&amp; agentpod run</code></pre>
 
-<section id="b2">
-<h2><span class="num">4</span>방법 B-2 — 호스트 파일 만들어 마운트 <span class="badge host">Docker만·공유</span></h2>
-<p>agentpod CLI 없이도 "한 번 만들어 공유"를 원하면, 방법 A가 만드는 파일을 직접 만들어 마운트합니다.</p>
-<pre><code><span class="cmt"># 호스트에서 1회</span>
+<h3>2-B. Docker만 쓸 때 — 파일 직접 생성</h3>
+<pre><code><span class="cmt"># 호스트에서 1회 (2-A가 만드는 것과 같은 파일)</span>
 <span class="p">$</span> mkdir -p ~/.agent
 <span class="p">$</span> cat &gt; ~/.agent/gitconfig &lt;&lt;'EOF'
 [user]
@@ -166,23 +144,43 @@ EOF
     -v ~/.agent/gitconfig:/home/agent/.gitconfig:ro \
     -v ~/.agent/git-credentials:/home/agent/.git-credentials:ro \
     agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
-<p class="muted">이 파일들을 마운트하는 모든 컨테이너가 같은 신원을 공유합니다(방법 A와 동일한 결과).</p>
+
+<p>저장 위치(모든 컨테이너가 읽기전용으로 마운트):</p>
+<table>
+<tr><th>파일</th><th>내용</th></tr>
+<tr><td><code>~/.agent/gitconfig</code></td><td>user.name/email + safe.directory (+ credential.helper)</td></tr>
+<tr><td><code>~/.agent/git-credentials</code></td><td>토큰 (chmod 600, 토큰 줬을 때만)</td></tr>
+</table>
+<div class="note ok"><b>왜 이게 제일 추천인가:</b> ①<b>한 번만</b> — 프로젝트/실행마다 다시 안 넣어도 됨. ②<b>모든 컨테이너 공유</b> — 로그인처럼 <code>~/.agent</code>에 영속. ③<b>토큰이 실행 명령·프로세스 목록에 노출되지 않음</b>(env 방식은 명령에 토큰이 남음). ④<code>git config</code>에도 정상 표시.</div>
+</section>
+
+<section id="env">
+<h2><span class="num">3</span>환경변수로 그때만 (대안·비영속) <span class="badge host">Docker만</span></h2>
+<p>호스트에 파일을 안 만들고 <b>그 실행에만</b> 신원을 넣고 싶을 때. 호스트에서 값을 env로 넘기면 entrypoint가 적용합니다.</p>
+<pre><code><span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    -e GIT_BOT_NAME=<span class="s">"agent-bot"</span> \
+    -e GIT_BOT_EMAIL=<span class="s">"agent-bot@users.noreply.github.com"</span> \
+    -e GITHUB_TOKEN=<span class="s">"&lt;PAT&gt;"</span> \
+    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
+<p class="muted"><code>.env</code> 파일에 같은 키를 넣고 <code>--env-file .env</code>로 줘도 동일합니다.</p>
+<div class="note warn"><b>한계:</b> 그 실행에만 적용(공유 아님) · 커밋 신원을 git 환경변수로 넣어 <code>git config user.name</code>엔 안 보임(커밋엔 반영) · 토큰이 실행 명령/셸 히스토리에 남을 수 있음. → 지속·공유가 필요하면 <b>§2 호스트 등록</b>을 쓰세요.</div>
 </section>
 
 <section id="verify">
 <h2><span class="num">5</span>확인</h2>
 <pre><code><span class="cmt"># 컨테이너 안에서</span>
-<span class="p">agent@…$</span> git config --global user.name       <span class="cmt"># 방법 A/B-2 → agent-bot</span>
-<span class="p">agent@…$</span> echo <span class="s">"$GIT_AUTHOR_NAME"</span>                <span class="cmt"># 방법 B-1(env) → agent-bot</span>
+<span class="p">agent@…$</span> git config --global user.name       <span class="cmt"># 호스트 등록 → agent-bot</span>
+<span class="p">agent@…$</span> echo <span class="s">"$GIT_AUTHOR_NAME"</span>                <span class="cmt"># 환경변수 방식 → agent-bot</span>
 
 <span class="cmt"># 실제 커밋/푸시로 최종 확인</span>
 <span class="p">agent@…$</span> git commit -m <span class="s">"test"</span> &amp;&amp; git log -1 --format=<span class="s">'%an &lt;%ae&gt;'</span>
 <span class="p">agent@…$</span> git push                            <span class="cmt"># 토큰이 있으면 봇으로 push</span></code></pre>
 <table>
 <tr><th>방식</th><th>등록 위치</th><th>공유</th><th><code>git config</code>에 표시</th></tr>
-<tr><td>A · git-setup</td><td>호스트 1회</td><td>✅ 전 컨테이너</td><td>✅</td></tr>
-<tr><td>B-1 · env</td><td>docker run마다</td><td>❌ 그 실행만</td><td>❌ (커밋엔 반영)</td></tr>
-<tr><td>B-2 · 파일 마운트</td><td>호스트 1회</td><td>✅ 마운트한 것</td><td>✅</td></tr>
+<tr><td><b>호스트 등록 · git-setup</b> (권장)</td><td>호스트 1회</td><td>✅ 전 컨테이너</td><td>✅</td></tr>
+<tr><td><b>호스트 등록 · 파일</b> (권장, Docker만)</td><td>호스트 1회</td><td>✅ 마운트한 것</td><td>✅</td></tr>
+<tr><td>환경변수 (대안)</td><td>docker run마다</td><td>❌ 그 실행만</td><td>❌ (커밋엔 반영)</td></tr>
 </table>
 </section>
 
