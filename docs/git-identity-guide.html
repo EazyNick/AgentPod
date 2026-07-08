@@ -158,6 +158,7 @@ EOF
 <section id="ssh">
 <h2><span class="num">3</span>SSH 키 방식 (Bitbucket / GitLab / GitHub)</h2>
 <p>HTTPS 토큰 대신 <b>SSH 키</b>로 인증합니다(Bitbucket에서 흔한 방식). 키도 호스트 <code>~/.agent/ssh</code>에 두면 <b>모든 컨테이너가 공유</b>합니다. AgentPod가 <code>openssh-client</code>와 <code>~/.ssh</code> 마운트·<code>GIT_SSH_COMMAND</code>를 자동 처리합니다.</p>
+<p class="muted">👉 Bitbucket 상세 단계·문제 해결은 <a class="link" href="bitbucket-ssh-guide.html">Bitbucket SSH 등록 가이드</a>를 참고하세요.</p>
 <ol class="steps">
   <li><h3>봇 SSH 키 생성 (호스트, 1회)</h3>
     <pre><code><span class="p">$</span> mkdir -p ~/.agent/ssh &amp;&amp; chmod 700 ~/.agent/ssh

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — Bitbucket 봇 계정 SSH 등록 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}.note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod · Git 신원</div>
+  <h1>Bitbucket 봇 계정 SSH 등록</h1>
+  <p class="lead">봇 전용 SSH 키를 <b>호스트 <code>~/.agent/ssh</code>에 한 번</b> 만들어 Bitbucket에 등록하면, 이후 모든 에이전트 컨테이너가 그 키로 clone·push 합니다. AgentPod가 <code>openssh-client</code>·<code>~/.ssh</code> 마운트·<code>GIT_SSH_COMMAND</code>를 자동 처리합니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">호스트 1회 등록</span>
+    <span class="pill">전 컨테이너 공유</span>
+    <span class="pill">SSH 키 (토큰 아님)</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#why">개요</a>
+  <a href="#account">① 봇 계정</a>
+  <a href="#keygen">② 키 생성</a>
+  <a href="#register">③ Bitbucket 등록</a>
+  <a href="#author">④ 커밋 작성자</a>
+  <a href="#run">⑤ 실행</a>
+  <a href="#verify">⑥ 확인</a>
+  <a href="#trouble">문제 해결</a>
+</div></nav>
+
+<section id="why">
+<h2><span class="num">0</span>개요</h2>
+<p>인증 방식은 <b>HTTPS 토큰</b>과 <b>SSH 키</b> 두 가지가 있습니다. 이 가이드는 Bitbucket에서 흔한 <b>SSH 키</b> 방식입니다. 키를 호스트 <code>~/.agent/ssh</code>에 두면 로그인·크레덴셜과 동일하게 <b>모든 컨테이너가 공유</b>합니다. 컨테이너 안에서 따로 설정할 필요가 없습니다.</p>
+<div class="note ok"><b>AgentPod 자동 처리:</b> 이미지에 <code>openssh-client</code> 포함, <code>~/.agent/ssh</code>가 있으면 <code>/home/agent/.ssh</code>로 마운트, 봇 키가 있으면 entrypoint가 <code>GIT_SSH_COMMAND</code>(키 지정·known_hosts·accept-new)를 설정.</div>
+</section>
+
+<section id="account">
+<h2><span class="num">1</span>봇 계정 준비</h2>
+<p>커밋 히스토리에서 사람과 봇을 구분하려면 <b>전용 봇 Bitbucket 계정</b> 권장. 공개키를 어디에 등록하느냐로 접근 범위가 갈립니다:</p>
+<table>
+<tr><th>등록 위치</th><th>범위</th><th>권장 상황</th></tr>
+<tr><td>계정 SSH 키 (Personal settings)</td><td>그 봇 계정이 접근 가능한 <b>모든 repo</b></td><td>봇이 여러 repo를 다룰 때</td></tr>
+<tr><td>저장소 Access key (deploy key)</td><td><b>그 repo 하나</b> (Read 또는 Write)</td><td>최소 권한 · repo 단위 격리</td></tr>
+</table>
+</section>
+
+<section id="keygen">
+<h2><span class="num">2</span>SSH 키 생성 (호스트, 1회)</h2>
+<pre><code><span class="p">$</span> mkdir -p ~/.agent/ssh &amp;&amp; chmod 700 ~/.agent/ssh
+<span class="p">$</span> ssh-keygen -t ed25519 -C <span class="s">"agent-bot"</span> -N <span class="s">""</span> -f ~/.agent/ssh/id_ed25519
+<span class="p">$</span> chmod 600 ~/.agent/ssh/id_ed25519</code></pre>
+<ul class="muted">
+  <li><code>-N ""</code> : 패스프레이즈 없음(무인 실행용). 보안 강화하려면 패스프레이즈 + ssh-agent 필요(무인엔 부적합).</li>
+  <li>생성물: 개인키 <code>id_ed25519</code>, 공개키 <code>id_ed25519.pub</code>.</li>
+</ul>
+<div class="note warn"><b>권한 필수:</b> <code>~/.agent/ssh</code>=700, 개인키=600. 소유자는 uid 1000(리눅스/WSL2 기본 사용자 = 컨테이너 <code>agent</code>)이어야 ssh가 거부하지 않습니다.</div>
+</section>
+
+<section id="register">
+<h2><span class="num">3</span>공개키를 Bitbucket에 등록</h2>
+<p>공개키 내용을 복사합니다:</p>
+<pre><code><span class="p">$</span> cat ~/.agent/ssh/id_ed25519.pub</code></pre>
+<ol class="steps">
+  <li><h3>계정 키로 등록</h3>
+    <p class="muted">Bitbucket 우측 상단 아바타 → <b>Personal settings → SSH keys → Add key</b> → Label 입력, 공개키 붙여넣기 → Save.</p></li>
+  <li><h3>또는 저장소 Access key(deploy key)로 등록</h3>
+    <p class="muted">대상 저장소 → <b>Repository settings → Access keys → Add key</b> → 공개키 붙여넣기. push가 필요하면 <b>write 권한</b> 옵션을 켭니다.</p></li>
+</ol>
+<div class="note"><b>계정 키 vs deploy key:</b> 여러 repo에 push하는 봇이면 <b>계정 키</b>가 편하고, 딱 한 repo만 다루면 <b>deploy key(최소 권한)</b>가 안전합니다.</div>
+</section>
+
+<section id="author">
+<h2><span class="num">4</span>커밋 작성자 설정</h2>
+<p>SSH는 <b>인증(push/pull)</b>만 담당합니다. 커밋에 찍히는 <b>작성자</b>는 따로 설정합니다(호스트 1회, 공유):</p>
+<pre><code><span class="cmt"># agentpod CLI 있으면 (토큰은 SSH라 불필요)</span>
+<span class="p">$</span> agentpod git-setup --name <span class="s">"agent-bot"</span> --email <span class="s">"봇-Bitbucket-이메일"</span>
+
+<span class="cmt"># CLI 없이 docker만이면 ~/.agent/gitconfig 직접 작성</span>
+<span class="p">$</span> cat &gt; ~/.agent/gitconfig &lt;&lt;'EOF'
+[user]
+	name = agent-bot
+	email = 봇-Bitbucket-이메일
+[safe]
+	directory = *
+EOF</code></pre>
+<p class="muted">이메일은 커밋이 봇 계정에 귀속되도록 <b>봇의 Bitbucket 이메일</b>로 맞추세요.</p>
+</section>
+
+<section id="run">
+<h2><span class="num">5</span>실행 — SSH 리모트 사용</h2>
+<pre><code><span class="cmt"># agentpod CLI: ~/.agent/ssh 가 자동 마운트됨</span>
+<span class="p">$</span> cd 프로젝트 &amp;&amp; agentpod run
+
+<span class="cmt"># docker만: ssh 디렉토리를 직접 마운트</span>
+<span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    -v ~/.agent/gitconfig:/home/agent/.gitconfig:ro \
+    -v ~/.agent/ssh:/home/agent/.ssh \
+    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
+<p>리모트는 <b>SSH URL</b>이어야 합니다(HTTPS가 아니라):</p>
+<pre><code><span class="p">agent@…$</span> git remote set-url origin git@bitbucket.org:WORKSPACE/REPO.git
+<span class="cmt"># 새로 clone 할 때도 SSH URL</span>
+<span class="p">agent@…$</span> git clone git@bitbucket.org:WORKSPACE/REPO.git</code></pre>
+</section>
+
+<section id="verify">
+<h2><span class="num">6</span>확인</h2>
+<pre><code><span class="p">agent@…$</span> ssh -T git@bitbucket.org
+<span class="cmt"># → "authenticated via ssh key ... You can use git ..." 류 메시지면 성공</span>
+<span class="p">agent@…$</span> echo <span class="s">"$GIT_SSH_COMMAND"</span>     <span class="cmt"># 키 지정이 들어가 있어야 함</span>
+<span class="p">agent@…$</span> git config --global user.name  <span class="cmt"># agent-bot</span>
+<span class="p">agent@…$</span> git push</code></pre>
+</section>
+
+<section id="trouble">
+<h2><span class="num">7</span>문제 해결</h2>
+<table>
+<tr><th>증상</th><th>원인 / 해결</th></tr>
+<tr><td><code>Permission denied (publickey)</code></td><td>공개키가 Bitbucket에 등록 안 됨 / 다른 키 사용. <code>id_ed25519.pub</code>를 계정 또는 deploy key로 등록했는지 확인. <code>ssh -T git@bitbucket.org -v</code>로 어떤 키를 쓰는지 확인.</td></tr>
+<tr><td><code>Host key verification failed</code></td><td>known_hosts에 bitbucket.org 없음. 호스트에서 <code>ssh-keyscan bitbucket.org &gt;&gt; ~/.agent/ssh/known_hosts</code> (entrypoint는 accept-new라 최초 접속 시 자동 추가되지만, ~/.ssh가 쓰기 가능해야 함).</td></tr>
+<tr><td><code>Bad owner or permissions</code> / 키 무시됨</td><td>ssh 권한 엄격. <code>chmod 700 ~/.agent/ssh</code>, <code>chmod 600 id_ed25519</code>, 소유 uid 1000 확인.</td></tr>
+<tr><td>여전히 HTTPS로 나감</td><td>리모트가 HTTPS URL. <code>git remote set-url origin git@bitbucket.org:WS/REPO.git</code>로 SSH URL 전환.</td></tr>
+<tr><td>write 거부(deploy key)</td><td>deploy key를 read-only로 등록함. Bitbucket에서 해당 Access key에 <b>write</b> 권한 부여.</td></tr>
+<tr><td>커밋 작성자가 봇이 아님</td><td>§4의 <code>user.email</code>을 봇 Bitbucket 이메일로 설정.</td></tr>
+</table>
+<div class="note ok"><b>GitLab / GitHub도 동일:</b> 호스트를 <code>gitlab.com</code>/<code>github.com</code>으로 바꿔 공개키 등록 + SSH URL(<code>git@github.com:...</code>) 사용. 컨테이너 설정은 그대로.</div>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>git 신원 전반: <a class="link" href="git-identity-guide.html">봇 git 신원 가이드</a> · 사용법: <a class="link" href="user-guide.html">사용자 가이드</a> · 설계: <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a></p>
+</footer>
+
+</div>
+</body>
+</html>
