@@ -105,9 +105,14 @@ node = "22"
 `~/.agent/`에 저장되어 **모든 컨테이너가 자동으로 공유**합니다(로그인과 동일 원리).
 
 ```bash
+# HTTPS 토큰 방식 (GitHub 등)
 agentpod git-setup --name "agent-bot" \
   --email "agent-bot@users.noreply.github.com" \
   --token <PAT>        # push/pull 토큰 (생략 시 커밋 신원만 설정)
+
+# SSH 방식 (Bitbucket 등) — 키 생성 + known_hosts + 공개키 출력까지 한 번에
+agentpod git-setup --ssh --ssh-host bitbucket.org \
+  --name "agent-bot" --email "봇 Bitbucket 이메일"
 ```
 
 - 저장 위치: `~/.agent/gitconfig`(신원) · `~/.agent/git-credentials`(토큰, chmod 600) — 저장소엔 안 들어감

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 from pathlib import Path
 
 import typer
@@ -234,14 +235,52 @@ def rm(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> None:
     typer.echo(f"Removed {cname}.")
 
 
+def _setup_ssh(ssh_host: str) -> None:
+    """Generate a bot SSH key under ~/.agent/ssh and print the public key to register."""
+    d = paths.ssh_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    try:
+        os.chmod(d, 0o700)
+    except OSError:
+        pass
+    key = d / "id_ed25519"
+    if not key.exists():
+        try:
+            subprocess.run(
+                ["ssh-keygen", "-t", "ed25519", "-N", "", "-C", "agentpod-bot", "-f", str(key)],
+                check=True,
+            )
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            _fail("ssh-keygen unavailable. Install OpenSSH, or create ~/.agent/ssh/id_ed25519 manually.")
+    try:
+        os.chmod(key, 0o600)
+    except OSError:
+        pass
+    kh = d / "known_hosts"
+    try:
+        out = subprocess.run(["ssh-keyscan", ssh_host], capture_output=True, text=True).stdout
+        existing = kh.read_text() if kh.exists() else ""
+        if out and ssh_host not in existing:
+            kh.write_text(existing + out)
+    except (FileNotFoundError, OSError):
+        pass
+    pub = (d / "id_ed25519.pub").read_text().strip()
+    typer.echo("")
+    typer.secho(f"아래 공개키를 원격({ssh_host})에 등록하세요:", fg=typer.colors.GREEN)
+    typer.echo("  Bitbucket: Personal settings → SSH keys → Add key (또는 repo Access keys)")
+    typer.echo(pub)
+
+
 @app.command("git-setup")
 def git_setup(
     name: str = typer.Option(..., "--name", help="Bot commit author name."),
     email: str = typer.Option(..., "--email", help="Bot commit author email."),
     token: str = typer.Option(
-        None, "--token", help="PAT for push/pull (stored in ~/.agent/git-credentials)."
+        None, "--token", help="PAT for HTTPS push/pull (stored in ~/.agent/git-credentials)."
     ),
     host: str = typer.Option("github.com", "--host", help="Git host for the token."),
+    ssh: bool = typer.Option(False, "--ssh", help="Generate a bot SSH key (for SSH remotes like Bitbucket)."),
+    ssh_host: str = typer.Option("bitbucket.org", "--ssh-host", help="Host added to known_hosts."),
 ) -> None:
     """Register a shared bot git identity used by ALL agent containers (§4.5)."""
     paths.ensure_layout()
@@ -255,6 +294,8 @@ def git_setup(
         f"Bot git identity saved under {paths.agent_root()} "
         f"(shared by all containers){' with push token' if use_cred else ''}."
     )
+    if ssh:
+        _setup_ssh(ssh_host)
 
 
 @app.command()

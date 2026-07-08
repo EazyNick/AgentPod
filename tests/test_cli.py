@@ -92,6 +92,27 @@ def test_build_mounts_codex_tool(monkeypatch, tmp_path):
     assert "/home/agent/.claude.json" not in conts  # codex has no claude.json
 
 
+def test_setup_ssh_generates_key_and_known_hosts(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+    import subprocess as sp
+
+    def fake_run(args, **kw):
+        if args[0] == "ssh-keygen":
+            f = args[args.index("-f") + 1]
+            open(f, "w").write("PRIV")
+            open(f + ".pub", "w").write("ssh-ed25519 AAAA agentpod-bot\n")
+            return sp.CompletedProcess(args, 0, "", "")
+        if args[0] == "ssh-keyscan":
+            return sp.CompletedProcess(args, 0, "bitbucket.org ssh-ed25519 AAAA\n", "")
+        return sp.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+    cli._setup_ssh("bitbucket.org")
+    assert (paths.ssh_dir() / "id_ed25519").exists()
+    assert "bitbucket.org" in (paths.ssh_dir() / "known_hosts").read_text()
+
+
 def test_build_mounts_profile_changes_creds_host(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
     from agentpod import paths

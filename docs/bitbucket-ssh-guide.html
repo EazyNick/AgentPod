@@ -101,6 +101,15 @@
 
 <section id="keygen">
 <h2><span class="num">2</span>SSH 키 생성 (호스트, 1회)</h2>
+
+<div class="note ok"><b>가장 간단 — <code>git-setup --ssh</code> 한 줄</b> (agentpod CLI가 있으면)
+<pre><code><span class="p">$</span> agentpod git-setup --ssh \
+    --name <span class="s">"agent-bot"</span> --email <span class="s">"봇-Bitbucket-이메일"</span> \
+    --ssh-host bitbucket.org</code></pre>
+이 한 줄이 <b>키 생성(<code>~/.agent/ssh/id_ed25519</code>) + 권한 설정 + known_hosts 추가 + 커밋 신원 설정</b>을 모두 하고,
+<b>등록할 공개키를 출력</b>합니다. 출력된 공개키를 §3처럼 Bitbucket에 붙여넣으면 끝. (§2 수동 단계는 CLI가 없을 때만)</div>
+
+<p class="muted">수동(CLI 없이 docker만):</p>
 <pre><code><span class="p">$</span> mkdir -p ~/.agent/ssh &amp;&amp; chmod 700 ~/.agent/ssh
 <span class="p">$</span> ssh-keygen -t ed25519 -C <span class="s">"agent-bot"</span> -N <span class="s">""</span> -f ~/.agent/ssh/id_ed25519
 <span class="p">$</span> chmod 600 ~/.agent/ssh/id_ed25519</code></pre>
