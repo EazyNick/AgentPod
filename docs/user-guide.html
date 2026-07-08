@@ -150,7 +150,7 @@ docker run --rm -it -v "$PWD":/project -w /project \
 <h2><span class="num">4</span>명령어 <span class="badge">7개</span></h2>
 <div class="cmd">
   <div class="c">agentpod build [--force]</div><div class="d">에이전트 이미지 빌드. 이미 있으면 skip(<code>--force</code>로 강제 재빌드).</div>
-  <div class="c">agentpod run</div><div class="d">현재 프로젝트의 컨테이너를 스폰/재사용 → Claude Code 대화형 실행. <code>--memory/--cpus/--pids</code>로 리소스 제한(아래).</div>
+  <div class="c">agentpod run</div><div class="d">현재 프로젝트의 컨테이너를 스폰/재사용 → 대화형 실행. <code>--tool</code>(claude/codex/opencode) · <code>--profile</code> · <code>--memory/--cpus/--pids</code>(아래).</div>
   <div class="c">agentpod shell</div><div class="d">같은 컨테이너에 <code>bash</code>로 접속(디버깅·최초 <code>claude login</code>용).</div>
   <div class="c">agentpod status</div><div class="d">모든 <code>agent-*</code> 컨테이너와 상태, 활성 세션 수 표시.</div>
   <div class="c">agentpod stop</div><div class="d">현재 프로젝트의 컨테이너를 stop.</div>
@@ -178,6 +178,32 @@ export AGENT_MEMORY=8g AGENT_CPUS=4 AGENT_PIDS_LIMIT=1024</code></pre>
   -v ~/.agent/claude:/home/agent/.claude \
   agentpod:latest claude --dangerously-skip-permissions</code></pre>
 <div class="note"><b>주의:</b> 제한은 컨테이너 <b>생성 시점</b>에만 적용됩니다. 이미 떠 있는 컨테이너의 한계를 바꾸려면 <code>agentpod rm</code>(또는 <code>docker rm</code>) 후 다시 실행하세요.</div>
+
+<h3 style="margin-top:26px">멀티툴 — claude / codex / opencode</h3>
+<p><code>--tool</code>로 실행할 AI 코딩 CLI를 고릅니다. 도구별 자율 플래그·크레덴셜 저장소가 분리됩니다.</p>
+<pre><code>agentpod run --tool claude       <span class="cmt"># 기본</span>
+agentpod run --tool codex
+agentpod run --tool opencode</code></pre>
+<table>
+<tr><th>도구</th><th>크레덴셜(호스트)</th><th>자율 플래그(컨테이너 내부)</th></tr>
+<tr><td>claude</td><td><code>~/.agent/claude</code></td><td><code>--dangerously-skip-permissions</code></td></tr>
+<tr><td>codex</td><td><code>~/.agent/codex</code></td><td><code>--dangerously-bypass-approvals-and-sandbox</code></td></tr>
+<tr><td>opencode</td><td><code>~/.agent/opencode</code></td><td>(기본 없음)</td></tr>
+</table>
+
+<h3 style="margin-top:26px">프로파일 — 계정 분리</h3>
+<p><code>--profile</code>(또는 <code>AGENT_PROFILE</code>)로 컨테이너별 다른 계정(크레덴셜 세트)을 씁니다.</p>
+<pre><code>agentpod run --profile bot       <span class="cmt"># 컨테이너 agent-&lt;id&gt;--p--bot</span>
+<span class="cmt"># 크레덴셜: ~/.agent/profiles/bot/&lt;tool&gt;</span>
+agentpod run                     <span class="cmt"># 기본(공용) 계정: ~/.agent/&lt;tool&gt;</span></code></pre>
+<p class="muted"><code>--profile</code>은 <code>run/shell/stop/rm</code>에 적용됩니다. 프로파일 컨테이너는 이름이 달라 별도 컨테이너로 관리됩니다.</p>
+
+<h3 style="margin-top:26px">mise — 툴체인 버전</h3>
+<p>이미지에 <b>mise + python 3.12 + node</b>가 내장됩니다. 프로젝트 루트에 <code>mise.toml</code>을 두면 부팅 시 그 버전을 추가 설치합니다.</p>
+<pre><code><span class="cmt"># 프로젝트 루트/mise.toml</span>
+[tools]
+python = <span class="s">"3.12"</span>
+node = <span class="s">"22"</span></code></pre>
 </section>
 
 <section id="auth">
