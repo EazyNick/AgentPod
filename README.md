@@ -66,6 +66,7 @@ agentpod git-setup --name "agent-bot" \
 - 저장 위치: `~/.agent/gitconfig`(신원) · `~/.agent/git-credentials`(토큰, chmod 600) — 저장소엔 안 들어감
 - 프로젝트별로 다르게 쓰려면 `.env`의 `GIT_BOT_NAME/GIT_BOT_EMAIL/GITHUB_TOKEN`로 오버라이드
 - 봇 계정 권한은 최소로, 토큰은 주기적으로 회전하세요.
+- 자세한 방법(PAT 발급·docker run 방식·확인): [git-identity-guide](docs/git-identity-guide.html)
 
 ## 컨테이너별 MD 컨텍스트
 

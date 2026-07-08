@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — 봇 git 신원 등록 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}.note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  .badge{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:6px;color:#fff;margin-right:6px}
+  .badge.host{background:#0f9d76}.badge.cli{background:#2f6fed}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod</div>
+  <h1>봇 git 신원 등록 가이드</h1>
+  <p class="lead">자율 에이전트가 <b>사람 계정이 아닌 전용 봇 신원</b>으로 커밋·푸시하도록 설정합니다. 한 번 등록하면 모든 컨테이너가 공유합니다. 커밋 히스토리에서 "봇이 한 일"이 명확히 구분되고, 사람 개인키를 에이전트에 노출하지 않습니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">등록은 호스트에서</span>
+    <span class="pill">컨테이너는 자동 적용</span>
+    <span class="pill">한 번 = 전 컨테이너 공유</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#why">왜 봇 신원</a>
+  <a href="#pat">① PAT 발급</a>
+  <a href="#a">② 방법 A · git-setup</a>
+  <a href="#b1">③ 방법 B-1 · env</a>
+  <a href="#b2">④ 방법 B-2 · 파일</a>
+  <a href="#verify">확인</a>
+  <a href="#security">보안</a>
+</div></nav>
+
+<section id="why">
+<h2><span class="num">0</span>핵심 개념 — "컨테이너 안에서 설정하지 않는다"</h2>
+<p>봇 신원은 <b>호스트에서 한 번 준비</b>하면 컨테이너가 뜰 때 entrypoint가 <b>자동으로 적용</b>합니다. 컨테이너 안에서 손으로 <code>git config</code>를 칠 필요가 없습니다(마운트가 읽기전용이라 쓰면 실패하고, <code>--rm</code>이면 사라집니다).</p>
+<p>신원은 두 부분입니다:</p>
+<ul class="muted">
+  <li><b>커밋 작성자</b> — <code>user.name</code> / <code>user.email</code></li>
+  <li><b>푸시/풀 인증</b> — GitHub Personal Access Token(PAT) 또는 SSH deploy key</li>
+</ul>
+</section>
+
+<section id="pat">
+<h2><span class="num">1</span>준비 — 봇 계정 + PAT 발급</h2>
+<ol class="steps">
+  <li><h3>봇용 GitHub 계정(또는 최소 권한 계정) 준비</h3>
+    <p class="muted">개인 계정을 그대로 써도 되지만, 감사·권한 분리를 위해 전용 봇 계정 권장.</p></li>
+  <li><h3>PAT 발급 (권한 최소화)</h3>
+    <p class="muted">GitHub → <b>Settings → Developer settings → Personal access tokens</b></p>
+    <ul class="muted">
+      <li><b>Fine-grained</b>(권장): 대상 저장소만 선택 → <b>Repository permissions → Contents: Read and write</b> (PR 만들려면 <b>Pull requests: Read and write</b> 추가)</li>
+      <li><b>Classic</b>: <code>repo</code> 스코프</li>
+    </ul>
+    <p class="muted">토큰 문자열(<code>ghp_...</code> 또는 <code>github_pat_...</code>)을 복사해 둡니다. 커밋만 하고 푸시는 안 할 거면 토큰 없이 진행해도 됩니다(커밋 신원만 설정).</p></li>
+</ol>
+<div class="note warn">토큰은 비밀입니다. 저장소·이미지에 넣지 마세요. 아래 방식들은 모두 토큰을 저장소 밖(<code>~/.agent</code>)이나 런타임 env로만 다룹니다.</div>
+</section>
+
+<section id="a">
+<h2><span class="num">2</span>방법 A — <code>agentpod git-setup</code> <span class="badge cli">권장</span></h2>
+<p>agentpod CLI를 설치했다면(정식 설치), <b>한 번 등록 → 모든 컨테이너 공유</b>가 가장 간단합니다.</p>
+<pre><code><span class="cmt"># 호스트에서 1회</span>
+<span class="p">$</span> agentpod git-setup \
+    --name <span class="s">"agent-bot"</span> \
+    --email <span class="s">"agent-bot@users.noreply.github.com"</span> \
+    --token <span class="s">&lt;PAT&gt;</span>          <span class="cmt"># 생략 시 커밋 신원만 설정</span></code></pre>
+<p>저장 위치(모든 컨테이너가 읽기전용으로 마운트):</p>
+<table>
+<tr><th>파일</th><th>내용</th></tr>
+<tr><td><code>~/.agent/gitconfig</code></td><td>user.name/email + safe.directory (+ credential.helper)</td></tr>
+<tr><td><code>~/.agent/git-credentials</code></td><td>토큰 (chmod 600, 토큰 줬을 때만)</td></tr>
+</table>
+<pre><code><span class="cmt"># 이후 그냥 실행 — 신원이 자동으로 들어가 있음</span>
+<span class="p">$</span> cd 프로젝트
+<span class="p">$</span> agentpod run</code></pre>
+<div class="note ok"><b>공유됨:</b> 로그인·크레덴셜과 동일하게 <code>~/.agent</code>에 저장되어, 이후 뜨는 모든 컨테이너가 같은 봇 신원을 씁니다. 다시 등록할 필요 없음.</div>
+</section>
+
+<section id="b1">
+<h2><span class="num">3</span>방법 B-1 — <code>docker run -e</code> (환경변수) <span class="badge host">Docker만</span></h2>
+<p>agentpod CLI 없이 <code>docker run</code>만 쓸 때 가장 간단. 호스트에서 값을 env로 넘기면 entrypoint가 적용합니다.</p>
+<pre><code><span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    -e GIT_BOT_NAME=<span class="s">"agent-bot"</span> \
+    -e GIT_BOT_EMAIL=<span class="s">"agent-bot@users.noreply.github.com"</span> \
+    -e GITHUB_TOKEN=<span class="s">"&lt;PAT&gt;"</span> \
+    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
+<p class="muted"><code>.env</code> 파일에 같은 키를 넣고 <code>--env-file .env</code>로 줘도 동일합니다.</p>
+<div class="note"><b>참고:</b> 이 방식은 커밋 신원을 <b>git 환경변수</b>(<code>GIT_AUTHOR_*</code>/<code>GIT_COMMITTER_*</code>)로 적용합니다. 그래서 <code>git config user.name</code>엔 안 보이지만 <b>실제 커밋 작성자는 봇으로</b> 찍힙니다. 그 실행에만 적용(공유 아님).</div>
+</section>
+
+<section id="b2">
+<h2><span class="num">4</span>방법 B-2 — 호스트 파일 만들어 마운트 <span class="badge host">Docker만·공유</span></h2>
+<p>agentpod CLI 없이도 "한 번 만들어 공유"를 원하면, 방법 A가 만드는 파일을 직접 만들어 마운트합니다.</p>
+<pre><code><span class="cmt"># 호스트에서 1회</span>
+<span class="p">$</span> mkdir -p ~/.agent
+<span class="p">$</span> cat &gt; ~/.agent/gitconfig &lt;&lt;'EOF'
+[user]
+	name = agent-bot
+	email = agent-bot@users.noreply.github.com
+[safe]
+	directory = *
+[credential]
+	helper = store
+EOF
+<span class="p">$</span> echo <span class="s">"https://x-access-token:&lt;PAT&gt;@github.com"</span> &gt; ~/.agent/git-credentials
+<span class="p">$</span> chmod 600 ~/.agent/git-credentials
+
+<span class="cmt"># 실행 시 읽기전용으로 마운트</span>
+<span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    -v ~/.agent/gitconfig:/home/agent/.gitconfig:ro \
+    -v ~/.agent/git-credentials:/home/agent/.git-credentials:ro \
+    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span></code></pre>
+<p class="muted">이 파일들을 마운트하는 모든 컨테이너가 같은 신원을 공유합니다(방법 A와 동일한 결과).</p>
+</section>
+
+<section id="verify">
+<h2><span class="num">5</span>확인</h2>
+<pre><code><span class="cmt"># 컨테이너 안에서</span>
+<span class="p">agent@…$</span> git config --global user.name       <span class="cmt"># 방법 A/B-2 → agent-bot</span>
+<span class="p">agent@…$</span> echo <span class="s">"$GIT_AUTHOR_NAME"</span>                <span class="cmt"># 방법 B-1(env) → agent-bot</span>
+
+<span class="cmt"># 실제 커밋/푸시로 최종 확인</span>
+<span class="p">agent@…$</span> git commit -m <span class="s">"test"</span> &amp;&amp; git log -1 --format=<span class="s">'%an &lt;%ae&gt;'</span>
+<span class="p">agent@…$</span> git push                            <span class="cmt"># 토큰이 있으면 봇으로 push</span></code></pre>
+<table>
+<tr><th>방식</th><th>등록 위치</th><th>공유</th><th><code>git config</code>에 표시</th></tr>
+<tr><td>A · git-setup</td><td>호스트 1회</td><td>✅ 전 컨테이너</td><td>✅</td></tr>
+<tr><td>B-1 · env</td><td>docker run마다</td><td>❌ 그 실행만</td><td>❌ (커밋엔 반영)</td></tr>
+<tr><td>B-2 · 파일 마운트</td><td>호스트 1회</td><td>✅ 마운트한 것</td><td>✅</td></tr>
+</table>
+</section>
+
+<section id="security">
+<h2><span class="num">6</span>보안 체크리스트</h2>
+<ul class="muted">
+  <li>봇 계정/토큰 권한은 <b>최소로</b>(필요한 저장소만, Contents write 정도).</li>
+  <li>토큰은 <b>주기적으로 회전</b>. 유출 시 즉시 폐기.</li>
+  <li>토큰을 저장소·이미지·compose에 하드코딩하지 않기. <code>.env</code>는 gitignore, <code>~/.agent/git-credentials</code>는 저장소 밖 + chmod 600.</li>
+  <li>사람 개인키·호스트 gitconfig/ssh를 컨테이너에 넣지 않기(전용 봇 신원으로 대체).</li>
+</ul>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>사용법은 <a class="link" href="user-guide.html">사용자 가이드</a> · WSL2는 <a class="link" href="wsl2-guide.html">WSL2 가이드</a> · 내부 동작은 <a class="link" href="how-it-works.html">동작 원리</a> · 설계 근거는 <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a>.</p>
+</footer>
+
+</div>
+</body>
+</html>
