@@ -58,10 +58,19 @@ def run_detached(
     mounts: list[Mount],
     workdir: str,
     env_file: str | None,
+    memory: str | None = None,
+    cpus: str | None = None,
+    pids_limit: int | None = None,
 ) -> None:
     args = ["docker", "run", "-d", "--name", name, "-w", workdir]
     if env_file:
         args += ["--env-file", env_file]
+    if memory:
+        args += ["--memory", memory]
+    if cpus:
+        args += ["--cpus", str(cpus)]
+    if pids_limit is not None:
+        args += ["--pids-limit", str(pids_limit)]
     for m in mounts:
         args += ["-v", m.to_arg()]
     args.append(image)

@@ -61,6 +61,35 @@ def test_run_detached_omits_env_file_when_none(monkeypatch):
     assert "--env-file" not in captured["args"]
 
 
+def _capture(monkeypatch):
+    captured = {}
+    monkeypatch.setattr(
+        docker_ctl.subprocess, "run",
+        lambda args, **kw: (captured.setdefault("args", args), subprocess.CompletedProcess(args, 0, "", ""))[1],
+    )
+    return captured
+
+
+def test_run_detached_resource_limits(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.run_detached(
+        "agent-x", "img", [], "/w", None, memory="4g", cpus="2", pids_limit=512
+    )
+    a = captured["args"]
+    assert a[a.index("--memory") + 1] == "4g"
+    assert a[a.index("--cpus") + 1] == "2"
+    assert a[a.index("--pids-limit") + 1] == "512"
+    # resource flags precede the image (last arg)
+    assert a[-1] == "img"
+
+
+def test_run_detached_omits_limits_when_none(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.run_detached("agent-x", "img", [], "/w", None)
+    a = captured["args"]
+    assert "--memory" not in a and "--cpus" not in a and "--pids-limit" not in a
+
+
 def test_list_agents_parses_lines(monkeypatch):
     out = "agent-a\trunning\nagent-b\texited\n"
     monkeypatch.setattr(
