@@ -61,5 +61,9 @@ with open(p, "w") as f:
     json.dump(d, f, indent=2)
 PY
 
+# 3d. Install skills declared in the project manifest (agent.toml / skills.toml)
+#     from the project root (= workdir). Best-effort; never fails the boot.
+python3 /usr/local/bin/agent-skills.py || true
+
 # 4. Hand off to the container command (default: sleep infinity keep-alive).
 exec "$@"

@@ -83,6 +83,26 @@ agentpod git-setup --name "agent-bot" \
 - 봇 계정 권한은 최소로, 토큰은 주기적으로 회전하세요.
 - 자세한 방법(PAT 발급·docker run 방식·확인): [git-identity-guide](docs/git-identity-guide.html)
 
+## 스킬(플러그인) 자동 설치 — skills.toml / agent.toml
+
+프로젝트 루트에 매니페스트를 두면 컨테이너 부팅 시 선언한 스킬을 자동 설치합니다(멱등·best-effort).
+superpowers는 매니페스트가 없어도 기본으로 항상 설치됩니다.
+
+```toml
+# skills.toml (스킬만)  또는  agent.toml (전체 설정 중 [[skills]] 섹션)
+[[skills]]
+name = "superpowers"            # 유명 스킬은 이름만 (내장 카탈로그가 출처 해석)
+
+[[skills]]
+name = "my-skill"
+source = "github:org/repo"      # 커스텀은 마켓플레이스 저장소 지정
+# marketplace_name = "..."      # (선택) install 시 @이름; add 출력에서 자동 감지 시도
+enabled = true                  # (선택, 기본 true)
+```
+
+- **위치**: 프로젝트 루트(= 컨테이너 작업 디렉토리). `agent.toml`·`skills.toml` 둘 다 읽어 병합.
+- 내부적으로 `claude plugin marketplace add` + `claude plugin install`로 번역됩니다.
+
 ## 컨테이너별 MD 컨텍스트
 
 `agentpod context`가 출력하는 폴더(`~/.agent/contexts/<projectId>/`)에 `CLAUDE.md`와

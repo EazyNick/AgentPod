@@ -41,11 +41,12 @@ RUN (userdel -r ubuntu 2>/dev/null || true) \
 # LAYER 4 (occasionally): claude CLI installed globally
 RUN npm install -g @anthropic-ai/claude-code
 
-# LAYER 5 (frequently): entrypoint
+# LAYER 5 (frequently): entrypoint + skills installer
 #   Strip any CR (Windows checkouts can introduce CRLF; a CRLF shebang breaks exec).
 COPY docker/agent-entrypoint.sh /usr/local/bin/agent-entrypoint.sh
-RUN sed -i 's/\r$//' /usr/local/bin/agent-entrypoint.sh \
-    && chmod +x /usr/local/bin/agent-entrypoint.sh
+COPY docker/agent-skills.py /usr/local/bin/agent-skills.py
+RUN sed -i 's/\r$//' /usr/local/bin/agent-entrypoint.sh /usr/local/bin/agent-skills.py \
+    && chmod +x /usr/local/bin/agent-entrypoint.sh /usr/local/bin/agent-skills.py
 
 USER agent
 WORKDIR /project

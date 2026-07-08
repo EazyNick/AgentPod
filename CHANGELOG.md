@@ -24,6 +24,7 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너의 첫 릴리스.
   - 프로젝트별 `.env` 오버라이드(`GIT_BOT_NAME`/`GIT_BOT_EMAIL`/`GITHUB_TOKEN`)
 
 ### 에이전트 도구
+- **skills 매니페스트** (§4.8) — 프로젝트 루트 `skills.toml`/`agent.toml`의 `[[skills]]`를 부팅 시 자동 설치(내장 카탈로그로 이름만도 가능, 커스텀은 `source` 지정)
 - **superpowers 플러그인** 부팅 시 자동 설치(멱등, `~/.agent/claude`에 영속·공유)
 - **playwright MCP** (`.mcp.json`) + Chromium — DUT 웹 UI 자동화
 - **네트워크 테스트 도구** — `nmap` `iperf3` `arp-scan` `tcpdump` `traceroute` `mtr` `nc` `iw` `wpa_supplicant` `dhclient` `dig` 등 + Python `scapy`/`requests`
@@ -49,6 +50,6 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너의 첫 릴리스.
 
 ## 로드맵 (미구현)
 
-- **Phase 2 잔여**: skills 매니페스트 선언적 설치(§4.8) · 프로파일 다중 신원(§4.4) · 멀티툴 registry 확장(gemini/codex/opencode, §4.10) · mise 통합(§4.9)
+- **Phase 2 잔여**: 프로파일 다중 신원(§4.4) · 멀티툴 registry 확장(gemini/codex/opencode, §4.10) · mise 통합(§4.9)
 - **Phase 3**: 헤드리스 실행(`-p`) + asyncio 동시성 · worktree 병렬(모델 A, §5.5) · 결과 캡처+커밋/PR · **실행 안전**(타임아웃+kill, 동시성 상한, 감사 로그, 관측성, §5.6) · 고아 GC + 복원력 사다리
 - **Phase 4**: 컨테이너 수명주기 통합 테스트
