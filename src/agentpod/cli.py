@@ -46,6 +46,10 @@ def build_mounts(project_id: str, project_path: str) -> list[Mount]:
         mounts.append(
             Mount(str(paths.git_credentials_path()), "/home/agent/.git-credentials", ro=True)
         )
+    # Bot SSH keys (deploy/account key) for SSH remotes (Bitbucket/GitLab/GitHub).
+    # rw so ssh can update known_hosts; keys/perms come from the host dir.
+    if paths.ssh_dir().is_dir():
+        mounts.append(Mount(str(paths.ssh_dir()), "/home/agent/.ssh"))
     return mounts
 
 

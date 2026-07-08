@@ -78,7 +78,8 @@
   <a href="#why">왜 봇 신원</a>
   <a href="#pat">① PAT 발급</a>
   <a href="#host">② 호스트 등록 (권장)</a>
-  <a href="#env">③ 환경변수 (대안)</a>
+  <a href="#ssh">③ SSH 키 (Bitbucket)</a>
+  <a href="#env">④ 환경변수 (대안)</a>
   <a href="#verify">확인</a>
   <a href="#security">보안</a>
 </div></nav>
@@ -154,8 +155,48 @@ EOF
 <div class="note ok"><b>왜 이게 제일 추천인가:</b> ①<b>한 번만</b> — 프로젝트/실행마다 다시 안 넣어도 됨. ②<b>모든 컨테이너 공유</b> — 로그인처럼 <code>~/.agent</code>에 영속. ③<b>토큰이 실행 명령·프로세스 목록에 노출되지 않음</b>(env 방식은 명령에 토큰이 남음). ④<code>git config</code>에도 정상 표시.</div>
 </section>
 
+<section id="ssh">
+<h2><span class="num">3</span>SSH 키 방식 (Bitbucket / GitLab / GitHub)</h2>
+<p>HTTPS 토큰 대신 <b>SSH 키</b>로 인증합니다(Bitbucket에서 흔한 방식). 키도 호스트 <code>~/.agent/ssh</code>에 두면 <b>모든 컨테이너가 공유</b>합니다. AgentPod가 <code>openssh-client</code>와 <code>~/.ssh</code> 마운트·<code>GIT_SSH_COMMAND</code>를 자동 처리합니다.</p>
+<ol class="steps">
+  <li><h3>봇 SSH 키 생성 (호스트, 1회)</h3>
+    <pre><code><span class="p">$</span> mkdir -p ~/.agent/ssh &amp;&amp; chmod 700 ~/.agent/ssh
+<span class="p">$</span> ssh-keygen -t ed25519 -C <span class="s">"agent-bot"</span> -N <span class="s">""</span> -f ~/.agent/ssh/id_ed25519
+<span class="p">$</span> chmod 600 ~/.agent/ssh/id_ed25519</code></pre></li>
+  <li><h3>공개키를 Bitbucket에 등록</h3>
+    <p class="muted"><code>~/.agent/ssh/id_ed25519.pub</code> 내용을 복사해:</p>
+    <ul class="muted">
+      <li><b>계정 키</b>: Bitbucket → <b>Personal settings → SSH keys → Add key</b> (그 봇 계정이 접근 가능한 모든 repo)</li>
+      <li><b>저장소 Access key(deploy key)</b>: <b>Repository settings → Access keys → Add key</b> (repo 단위, Write 허용 선택)</li>
+    </ul></li>
+  <li><h3>known_hosts 준비 (선택 — 없으면 최초 접속 시 자동 수락)</h3>
+    <pre><code><span class="p">$</span> ssh-keyscan bitbucket.org &gt;&gt; ~/.agent/ssh/known_hosts</code></pre></li>
+  <li><h3>커밋 작성자 설정 (§2와 동일, 토큰은 불필요)</h3>
+    <pre><code><span class="p">$</span> agentpod git-setup --name <span class="s">"agent-bot"</span> --email <span class="s">"봇 Bitbucket 이메일"</span>
+<span class="cmt"># CLI 없이 docker만이면 ~/.agent/gitconfig 를 직접 작성(§2-B)</span></code></pre>
+    <p class="muted">이메일은 커밋이 봇에 귀속되도록 <b>봇 Bitbucket 계정 이메일</b>로.</p></li>
+  <li><h3>실행 — SSH 리모트 사용</h3>
+    <pre><code><span class="cmt"># agentpod CLI: ~/.agent/ssh 가 자동 마운트됨</span>
+<span class="p">$</span> agentpod run
+
+<span class="cmt"># docker만: ssh 디렉토리를 직접 마운트</span>
+<span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
+    -v ~/.agent/claude:/home/agent/.claude \
+    -v ~/.agent/gitconfig:/home/agent/.gitconfig:ro \
+    -v ~/.agent/ssh:/home/agent/.ssh \
+    agentpod:latest claude <span class="k">--dangerously-skip-permissions</span>
+
+<span class="cmt"># 리모트는 SSH URL 로</span>
+<span class="p">agent@…$</span> git remote set-url origin git@bitbucket.org:WORKSPACE/REPO.git
+<span class="p">agent@…$</span> ssh -T git@bitbucket.org      <span class="cmt"># 연결 확인</span>
+<span class="p">agent@…$</span> git push</code></pre></li>
+</ol>
+<div class="note ok"><b>GitLab/GitHub도 동일:</b> 호스트만 <code>gitlab.com</code>/<code>github.com</code>으로 바꿔 공개키 등록 + SSH URL 사용. 컨테이너 설정은 그대로.</div>
+<div class="note warn"><b>키 권한 주의:</b> ssh는 권한에 엄격합니다. <code>~/.agent/ssh</code>는 700, 개인키는 600, 소유자는 uid 1000(리눅스/WSL2 기본 사용자 = 컨테이너 <code>agent</code>)이어야 합니다.</div>
+</section>
+
 <section id="env">
-<h2><span class="num">3</span>환경변수로 그때만 (대안·비영속) <span class="badge host">Docker만</span></h2>
+<h2><span class="num">4</span>환경변수로 그때만 (대안·비영속) <span class="badge host">Docker만</span></h2>
 <p>호스트에 파일을 안 만들고 <b>그 실행에만</b> 신원을 넣고 싶을 때. 호스트에서 값을 env로 넘기면 entrypoint가 적용합니다.</p>
 <pre><code><span class="p">$</span> docker run --rm -it -v <span class="s">"$PWD"</span>:/project -w /project \
     -v ~/.agent/claude:/home/agent/.claude \

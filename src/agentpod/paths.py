@@ -45,6 +45,11 @@ def git_credentials_path() -> Path:
     return agent_root() / "git-credentials"
 
 
+def ssh_dir() -> Path:
+    """Shared bot SSH keys (deploy key / account key). Mounted to ~/.ssh."""
+    return agent_root() / "ssh"
+
+
 def ensure_layout() -> None:
     """Create the data layout. Idempotent; never clobbers existing files."""
     for d in (claude_creds_dir(), contexts_dir(), locks_dir()):

@@ -60,6 +60,18 @@ def test_build_mounts_gitconfig_always_credentials_when_present(monkeypatch, tmp
     assert "/home/agent/.git-credentials" in containers2
 
 
+def test_build_mounts_ssh_when_dir_present(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    assert all(m.container != "/home/agent/.ssh" for m in cli.build_mounts("r", str(tmp_path / "repo")))
+    paths.ssh_dir().mkdir(parents=True)
+    mounts = cli.build_mounts("r", str(tmp_path / "repo"))
+    ssh = next(m for m in mounts if m.container == "/home/agent/.ssh")
+    assert ssh.ro is False  # rw so ssh can update known_hosts
+
+
 def test_render_gitconfig():
     out = cli.render_gitconfig("agent-bot", "bot@users.noreply.github.com", False)
     assert "name = agent-bot" in out

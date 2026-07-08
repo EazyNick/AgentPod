@@ -5,7 +5,7 @@ FROM ubuntu:24.04
 #   Python + network tools (so agents can write/run test scripts: ping/DHCP/SSID etc.)
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl git ca-certificates unzip locales tzdata \
+        curl git openssh-client ca-certificates unzip locales tzdata \
         python3 python3-pip python3-venv \
         iputils-ping iproute2 dnsutils \
     && locale-gen en_US.UTF-8 \
