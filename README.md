@@ -130,7 +130,6 @@ agentpod git-setup --ssh --ssh-host bitbucket.org \
 ## 스킬(플러그인) 자동 설치 — skills.toml / agent.toml
 
 프로젝트 루트에 매니페스트를 두면 컨테이너 부팅 시 선언한 스킬을 자동 설치합니다(멱등·best-effort).
-superpowers는 매니페스트가 없어도 기본으로 항상 설치됩니다.
 
 ```toml
 # skills.toml (스킬만)  또는  agent.toml (전체 설정 중 [[skills]] 섹션)
@@ -156,7 +155,7 @@ enabled = true                  # (선택, 기본 true)
 
 ```bash
 agentpod export
-# → agent.toml에 [[skills]] 추가 (superpowers는 기본 제공이라 제외)
+# → agent.toml에 [[skills]] 추가
 # → .mcp.json에 mcpServers 추가
 # → 시크릿(MCP env/헤더 값)은 .mcp.json에 안 박히고 .env(gitignore)로 분리
 ```
@@ -164,7 +163,7 @@ agentpod export
 `git diff agent.toml .mcp.json`으로 확인 후 커밋·푸시하면, 팀원은 `git clone` +
 `agentpod run`만으로 같은 스킬이 자동 설치되고 MCP 서버가 자동 승인됩니다. `.mcp.json`의
 `${VAR}`가 참조하는 실제 값은 각자 자기 `.env`에 채워야 합니다(값 자체는 시크릿이라 공유 대상이
-아님). 자세한 내용: [skills-guide](docs/skills-guide.html)
+아님). 자세한 내용: [export-guide](docs/export-guide.html)
 
 ## 컨테이너별 MD 컨텍스트
 

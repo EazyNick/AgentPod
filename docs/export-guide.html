@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — 공유 가이드 (agentpod export)</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}.note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod</div>
+  <h1>공유 가이드 — <code>agentpod export</code></h1>
+  <p class="lead">세션 중에 설치한 플러그인/스킬, 붙인 MCP 서버를 프로젝트 파일로 스냅샷해서 팀원과 <code>git</code>으로 공유하는 방법.</p>
+  <div style="margin-top:14px">
+    <span class="pill">agent.toml</span>
+    <span class="pill">.mcp.json</span>
+    <span class="pill">시크릿은 .env로 분리</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#what">개요</a>
+  <a href="#usage">① 사용법</a>
+  <a href="#writes">② 무엇을 기록하나</a>
+  <a href="#secrets">③ 시크릿 처리</a>
+  <a href="#teammate">④ 받는 사람 쪽</a>
+  <a href="#profile">⑤ 프로파일</a>
+  <a href="#trouble">문제 해결</a>
+</div></nav>
+
+<section id="what">
+<h2><span class="num">0</span>개요</h2>
+<p>세션 중에 <code>/plugin install</code>이나 <code>claude mcp add</code>로 즉석에서 설치·연결한 것들은 프로젝트 폴더(git)가 아니라 <b>호스트 쪽 상태</b>에만 남습니다. 프로젝트별로 분리되어 있어서, 다른 사람이 <code>git clone</code>해도 자동으로 따라오지 않습니다.</p>
+<p><code>agentpod export</code>는 지금 이 프로젝트에 설치·연결된 것들을 <b>프로젝트 파일로 스냅샷</b>해서, 커밋 한 번으로 팀원 전체에 공유되게 해줍니다.</p>
+</section>
+
+<section id="usage">
+<h2><span class="num">1</span>사용법</h2>
+<pre><code><span class="cmt"># 프로젝트 폴더에서</span>
+<span class="p">$</span> agentpod export
+agent.toml: added skill(s) my-tool
+.mcp.json: added MCP server(s) jira-mcp (secrets written to .env)
+Review the diff, then commit agent.toml / .mcp.json. Never commit .env.</code></pre>
+<p class="muted">이미 <code>agent.toml</code>/<code>.mcp.json</code>에 있는 항목은 다시 안 씁니다 — 여러 번 실행해도 안전합니다(멱등).</p>
+</section>
+
+<section id="writes">
+<h2><span class="num">2</span>무엇을 기록하나</h2>
+<table>
+<tr><th>대상</th><th>기록되는 곳</th></tr>
+<tr><td>설치+활성화된 플러그인/스킬</td><td><code>agent.toml</code>의 <code>[[skills]]</code> (스키마: <a class="link" href="skills-guide.html">스킬 가이드</a>)</td></tr>
+<tr><td><code>claude mcp add</code>로 추가한 MCP 서버</td><td><code>.mcp.json</code>의 <code>mcpServers</code></td></tr>
+</table>
+<p class="muted">이미 기본으로 제공되는 소수의 내장 스킬은 굳이 다시 기록하지 않고 건너뜁니다 — <code>agent.toml</code>은 <b>이 프로젝트가 추가로 필요로 하는 것</b>만 담습니다.</p>
+</section>
+
+<section id="secrets">
+<h2><span class="num">3</span>시크릿 처리 — 절대 커밋 파일에 안 박힘</h2>
+<p>MCP 서버의 <code>env</code>/헤더 값(토큰·API 키 등)은 <code>.mcp.json</code>에 그대로 적히지 않습니다. 대신:</p>
+<ol class="steps">
+  <li><h3>값을 <code>${변수명}</code> 플레이스홀더로 치환</h3>
+    <p class="muted">예: <code>"API_KEY": "실제토큰"</code> → <code>"API_KEY": "${JIRA_MCP_API_KEY}"</code></p></li>
+  <li><h3>실제 값은 <code>.env</code>에 저장</h3>
+    <p class="muted"><code>.env</code>는 레포 전체에서 이미 <code>.gitignore</code> 처리되어 있습니다(<code>agents/n8n/.mcp.json</code>과 동일한 기존 방식). 변수명은 서버 이름을 붙여 충돌을 피합니다(<code>JIRA_MCP_API_KEY</code>).</p></li>
+</ol>
+<div class="note warn"><b>확인 습관:</b> export 후 <code>git status</code>로 <code>.env</code>가 안 보이는지(=제대로 무시되는지) 한 번 확인하고, <code>git add -f</code>로 강제 추가하지 않도록 주의하세요.</div>
+</section>
+
+<section id="teammate">
+<h2><span class="num">4</span>받는 사람 쪽 — <code>git clone</code> + <code>agentpod run</code>이 끝</h2>
+<p><code>git diff agent.toml .mcp.json</code>으로 뭐가 추가됐는지 확인하고 커밋·푸시하면, 팀원은:</p>
+<pre><code><span class="p">$</span> git clone ...
+<span class="p">$</span> agentpod run</code></pre>
+<p>만 실행하면 됩니다. 부팅 시 <code>agent.toml</code>의 스킬이 자동 설치되고, <code>.mcp.json</code>의 MCP 서버가 자동 승인됩니다.</p>
+<div class="note"><b>단, 시크릿 값은 각자 채워야 함:</b> <code>.mcp.json</code>의 <code>${VAR}</code>가 참조하는 실제 값은 export가 대신 채워주지 않습니다 — 값 자체가 시크릿이라 공유 대상이 아니기 때문입니다. 팀원 각자 자기 <code>.env</code>에 그 변수를 채워야 MCP 서버가 실제로 동작합니다.</div>
+</section>
+
+<section id="profile">
+<h2><span class="num">5</span>여러 프로젝트/계정을 일부러 공유하고 싶다면</h2>
+<p><code>agentpod run --profile 이름</code>처럼 프로젝트마다 같은 <code>--profile</code> 이름을 쓰면 그 프로젝트들끼리는 플러그인 설치 상태를 공유합니다(로그인은 프로필과 무관하게 항상 공유). <code>agentpod export --profile 이름</code>으로 그 프로필의 상태를 내보낼 수도 있습니다.</p>
+</section>
+
+<section id="trouble">
+<h2><span class="num">6</span>문제 해결</h2>
+<table>
+<tr><th>증상</th><th>원인 / 해결</th></tr>
+<tr><td><code>agentpod export</code>가 아무것도 안 씀</td><td>이미 <code>agent.toml</code>/<code>skills.toml</code>에 선언돼 있거나, 기본 제공 스킬뿐이거나, 아직 아무것도 설치·연결한 게 없는 경우입니다.</td></tr>
+<tr><td>export한 MCP 서버가 팀원 쪽에서 안 붙음</td><td><code>.mcp.json</code>의 <code>${VAR}</code>가 참조하는 실제 값을 팀원 각자 <code>.env</code>에 채워야 합니다 — 값 자체는 시크릿이라 export가 대신 채워주지 않습니다.</td></tr>
+<tr><td>다른 프로젝트에서 설치한 게 여기 <code>export</code>에 안 보임</td><td>정상입니다 — 플러그인 설치 상태는 프로젝트별로 분리됩니다. 같은 걸 공유하려면 §5의 <code>--profile</code>을 쓰세요.</td></tr>
+</table>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>스킬 선언 스키마: <a class="link" href="skills-guide.html">스킬 가이드</a> · 사용법: <a class="link" href="user-guide.html">사용자 가이드</a> · 내부 동작: <a class="link" href="how-it-works.html">동작 원리</a></p>
+</footer>
+
+</div>
+</body>
+</html>

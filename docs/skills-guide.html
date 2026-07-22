@@ -64,7 +64,7 @@
 <header class="hero">
   <div class="kicker">AgentPod</div>
   <h1>스킬(플러그인) 추가 가이드</h1>
-  <p class="lead">프로젝트 루트에 <b>매니페스트 파일</b>을 두면, 컨테이너가 뜰 때 선언한 Claude Code 스킬(플러그인)을 <b>자동 설치</b>합니다. superpowers는 매니페스트가 없어도 기본으로 설치됩니다.</p>
+  <p class="lead">프로젝트 루트에 <b>매니페스트 파일</b>을 두면, 컨테이너가 뜰 때 선언한 Claude Code 스킬(플러그인)을 <b>자동 설치</b>합니다.</p>
   <div style="margin-top:14px">
     <span class="pill">skills.toml / agent.toml</span>
     <span class="pill">프로젝트 루트</span>
@@ -87,7 +87,6 @@
 <section id="what">
 <h2><span class="num">0</span>개요</h2>
 <p>Claude Code 스킬은 <b>플러그인</b>으로 배포되고, 플러그인은 <b>마켓플레이스(= git 저장소)</b>에서 받습니다. AgentPod는 컨테이너 부팅 시 프로젝트 루트의 매니페스트를 읽어 <code>claude plugin marketplace add</code> + <code>claude plugin install</code>을 자동 실행합니다(멱등·best-effort — 실패해도 부팅은 계속).</p>
-<div class="note ok"><b>기본 제공:</b> superpowers는 매니페스트 없이도 항상 설치됩니다. 매니페스트는 <b>추가</b> 스킬을 위한 것입니다.</div>
 </section>
 
 <section id="where">
@@ -159,26 +158,8 @@ source = <span class="s">"github:org/my-skill-repo"</span>
 
 <section id="share">
 <h2><span class="num">6</span>공유하기 — <code>agentpod export</code></h2>
-<p>세션 중에 <code>/plugin install</code>이나 <code>claude mcp add</code>로 즉석에서 설치·연결한 건 프로젝트 폴더(git)가 아니라 <b>호스트의 개인 상태</b>에만 남습니다 — 프로젝트는 기본적으로 프로젝트별로 분리되어 있어서, 다른 사람이 <code>git clone</code>해도 자동으로 따라오지 않습니다.</p>
-<p><code>agentpod export</code>는 지금 이 프로젝트에 설치·연결된 것들을 <b>프로젝트 파일로 스냅샷</b>해줍니다:</p>
-<table>
-<tr><th>대상</th><th>기록되는 곳</th></tr>
-<tr><td>설치+활성화된 플러그인/스킬 (superpowers 제외 — 항상 기본 설치됨)</td><td><code>agent.toml</code>의 <code>[[skills]]</code></td></tr>
-<tr><td><code>claude mcp add</code>로 추가한 MCP 서버</td><td><code>.mcp.json</code>의 <code>mcpServers</code></td></tr>
-</table>
-<pre><code><span class="cmt"># 프로젝트 폴더에서</span>
-<span class="p">$</span> agentpod export
-agent.toml: added skill(s) my-tool
-.mcp.json: added MCP server(s) jira-mcp (secrets written to .env)
-Review the diff, then commit agent.toml / .mcp.json. Never commit .env.</code></pre>
-<div class="note warn"><b>시크릿은 절대 파일에 안 박힙니다:</b> MCP 서버의 <code>env</code>/헤더 값(토큰·API 키 등)은 <code>.mcp.json</code>에 그대로 적히지 않고 <code>${변수명}</code> 플레이스홀더로 바뀌며, 실제 값은 <code>.env</code>(레포 전체에서 이미 <code>.gitignore</code> 처리됨, <code>agents/n8n/.mcp.json</code>과 동일한 방식)에 저장됩니다.</div>
-<ol class="steps">
-  <li><h3>확인 후 커밋</h3>
-    <p class="muted"><code>git diff agent.toml .mcp.json</code>으로 뭐가 추가됐는지 확인하고, 문제 없으면 커밋·푸시합니다. <code>.env</code>는 이미 무시 대상이라 <code>git status</code>에도 안 뜹니다 — 그래도 실수로 <code>git add -f</code> 하지 않도록 주의하세요.</p></li>
-  <li><h3>다른 사람은 그냥 clone + run</h3>
-    <p class="muted">팀원이 <code>git clone</code> 후 <code>agentpod run</code>만 하면, 부팅 시 <code>agent.toml</code>의 스킬은 자동 설치되고 <code>.mcp.json</code>의 MCP 서버는 자동 승인됩니다. 다만 MCP 서버가 <code>${...}</code>로 참조하는 값은 각자 자기 <code>.env</code>에 채워야 합니다(이 부분은 값 자체가 시크릿이라 공유 대상이 아닙니다).</p></li>
-</ol>
-<div class="note"><b>여러 프로젝트/계정을 일부러 공유하고 싶다면:</b> <code>agentpod run --profile 이름</code>처럼 프로젝트마다 같은 <code>--profile</code> 이름을 쓰면 그 프로젝트들끼리는 플러그인 설치 상태를 공유합니다(로그인은 프로필과 무관하게 항상 공유). <code>agentpod export --profile 이름</code>으로 그 프로필의 상태를 내보낼 수도 있습니다.</div>
+<p>세션 중에 설치한 플러그인/스킬은 프로젝트별로 분리된 상태에만 남아 <code>git clone</code>해도 자동으로 안 따라옵니다. <code>agentpod export</code>로 지금 상태를 <code>agent.toml</code>에 스냅샷해서 커밋하면 팀원과 공유됩니다.</p>
+<div class="note"><b>자세한 사용법·시크릿 처리·문제 해결:</b> <a class="link" href="export-guide.html">공유 가이드</a> 참고.</div>
 </section>
 
 <section id="trouble">
@@ -190,14 +171,13 @@ Review the diff, then commit agent.toml / .mcp.json. Never commit .env.</code></
 <tr><td>네트워크 오류</td><td>마켓플레이스는 git clone으로 받습니다. 컨테이너 아웃바운드 네트워크 필요.</td></tr>
 <tr><td>매니페스트가 안 읽힘</td><td>파일이 <b>프로젝트 루트</b>(컨테이너 작업 디렉토리)에 있는지 확인. <code>agent.toml</code>/<code>skills.toml</code> 철자·TOML 문법 확인.</td></tr>
 <tr><td>비활성화하고 싶음</td><td>해당 항목에 <code>enabled = false</code>.</td></tr>
-<tr><td><code>agentpod export</code>가 아무것도 안 씀</td><td>이미 <code>agent.toml</code>/<code>skills.toml</code>에 선언돼 있거나, superpowers처럼 기본 제공되는 것뿐이거나, 아직 아무것도 설치·연결한 게 없는 경우입니다.</td></tr>
-<tr><td>export한 MCP 서버가 팀원 쪽에서 안 붙음</td><td><code>.mcp.json</code>의 <code>${VAR}</code>가 참조하는 실제 값을 팀원 각자 <code>.env</code>에 채워야 합니다 — 값 자체는 시크릿이라 export가 대신 채워주지 않습니다.</td></tr>
+<tr><td><code>agentpod export</code> 관련 문제</td><td><a class="link" href="export-guide.html">공유 가이드</a> §6 참고.</td></tr>
 </table>
 </section>
 
 <footer>
   <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
-  <p>사용법: <a class="link" href="user-guide.html">사용자 가이드</a> · 내부 동작: <a class="link" href="how-it-works.html">동작 원리</a> · 설계: <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a></p>
+  <p>사용법: <a class="link" href="user-guide.html">사용자 가이드</a> · 공유: <a class="link" href="export-guide.html">공유 가이드</a> · 내부 동작: <a class="link" href="how-it-works.html">동작 원리</a> · 설계: <a class="link" href="dev/BUILD-GUIDE.md">BUILD-GUIDE</a></p>
 </footer>
 
 </div>
