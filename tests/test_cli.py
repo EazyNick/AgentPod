@@ -123,3 +123,37 @@ def test_build_mounts_profile_changes_creds_host(monkeypatch, tmp_path):
     assert "profiles" in creds.host and creds.host.endswith("claude")
     cj = next(m for m in mounts if m.container == "/home/agent/.claude.json")
     assert "profiles" in cj.host
+
+
+def test_creds_profile_defaults_to_project_id():
+    assert cli.creds_profile(None, "jira-abc123") == "jira-abc123"
+    assert cli.creds_profile("bot", "jira-abc123") == "bot"
+
+
+def test_build_mounts_default_isolates_plugins_but_shares_login(monkeypatch, tmp_path):
+    """No --profile: plugin/skill state is auto-isolated per project (keyed by
+    project_id), but login (.claude.json) stays on the shared root."""
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    mounts = cli.build_mounts("jira-abc123", str(tmp_path / "repo"), tool="claude")
+    creds = next(m for m in mounts if m.container == "/home/agent/.claude")
+    assert creds.host == str(paths.claude_creds_dir("jira-abc123"))
+    cj = next(m for m in mounts if m.container == "/home/agent/.claude.json")
+    assert cj.host == str(paths.claude_json_path())  # shared root, no profile
+
+    # A different project gets a different, isolated creds dir.
+    other = cli.build_mounts("n8n-def456", str(tmp_path / "repo2"), tool="claude")
+    other_creds = next(m for m in other if m.container == "/home/agent/.claude")
+    assert other_creds.host != creds.host
+
+
+def test_build_mounts_default_isolates_codex_creds_too(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    mounts = cli.build_mounts("jira-abc123", str(tmp_path / "repo"), tool="codex")
+    creds = next(m for m in mounts if m.container == "/home/agent/.codex")
+    assert creds.host == str(paths.tool_creds_dir("codex", "jira-abc123"))

@@ -40,6 +40,16 @@ def resolve_target(target: str, profile: str | None = None) -> tuple[str, str]:
     return pid, naming.container_name(pid, profile)
 
 
+def creds_profile(profile: str | None, project_id: str) -> str:
+    """Plugin/skill install state is isolated per project by default (keyed by
+    project_id) so an install in one project's container never leaks into
+    another's. Pass --profile explicitly to opt into sharing/copying another
+    project's plugin state under a shared name instead. Login (.claude.json)
+    is untouched by this -- it stays on the shared root unless --profile is
+    given (see build_mounts)."""
+    return profile or project_id
+
+
 def build_mounts(
     project_id: str,
     project_path: str,
@@ -48,14 +58,14 @@ def build_mounts(
 ) -> list[Mount]:
     paths.ensure_layout()
     tdef = registry.get_tool(tool)
-    creds = paths.tool_creds_dir(tdef.creds_key, profile)
+    creds = paths.tool_creds_dir(tdef.creds_key, creds_profile(profile, project_id))
     creds.mkdir(parents=True, exist_ok=True)
     mounts = [
         Mount(str(Path(project_path).resolve()), f"/project/{project_id}"),
         Mount(str(creds), tdef.creds_container_path),
     ]
     if tdef.uses_claude_json:
-        cj = paths.claude_json_path(profile)
+        cj = paths.claude_json_path(profile)  # shared across projects unless --profile given
         if not cj.exists():
             cj.write_text("{}\n")
         mounts.append(Mount(str(cj), "/home/agent/.claude.json"))
@@ -113,7 +123,7 @@ def ensure_container(
     if state == "running":
         return cname
     if registry.get_tool(tool).uses_claude_json:
-        plugins.seed_superpowers(paths.claude_creds_dir(profile))
+        plugins.seed_superpowers(paths.claude_creds_dir(creds_profile(profile, project_id)))
     if state == "exited":
         docker_ctl.start(cname)
         return cname
@@ -166,7 +176,15 @@ _MEM_OPT = typer.Option(None, "--memory", help="Memory cap (e.g. 4g). Default AG
 _CPU_OPT = typer.Option(None, "--cpus", help="CPU cap (e.g. 2). Default AGENT_CPUS or 2.")
 _PID_OPT = typer.Option(None, "--pids", help="Max PIDs. Default AGENT_PIDS_LIMIT or 512.")
 _TOOL_OPT = typer.Option(registry.DEFAULT_TOOL, "--tool", help="Tool: claude | codex | opencode.")
-_PROFILE_OPT = typer.Option(None, "--profile", help="Account profile (separate creds). Default AGENT_PROFILE.")
+_PROFILE_OPT = typer.Option(
+    None,
+    "--profile",
+    help=(
+        "Share/copy plugin state with another project under this name (plugins/"
+        "skills are isolated per project by default; login stays shared either way). "
+        "Default AGENT_PROFILE."
+    ),
+)
 
 
 def _resources(memory: str | None, cpus: str | None, pids: int | None) -> config.Resources:
