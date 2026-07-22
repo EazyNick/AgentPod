@@ -44,13 +44,15 @@ agentpod status                # 모든 agent-* 컨테이너 + 활성 세션 수
 agentpod stop                  # 이 프로젝트의 컨테이너 stop
 agentpod rm                    # stop + remove
 agentpod context               # 이 컨테이너의 MD 컨텍스트 폴더 경로
+agentpod export                # 설치된 플러그인/스킬 + MCP 서버를 agent.toml/.mcp.json에 기록 (아래 공유하기)
 ```
 
 ## 인증 (둘 다 지원)
 
 - **API 키**: 프로젝트 루트 `.env`에 `ANTHROPIC_API_KEY=...` → 자동 주입.
-- **대화형 로그인**: `agentpod shell` 후 `claude login`. `~/.agent/claude` 바인드
-  마운트로 영속되어 컨테이너가 죽어도 로그인 유지.
+- **대화형 로그인**: `agentpod shell` 후 `claude login`. 바인드 마운트로 영속되어 컨테이너가
+  죽어도, 심지어 다른 프로젝트로 옮겨도 로그인이 유지됩니다 — 로그인은 프로젝트별로 분리되지
+  않고 항상 공유됩니다(아래 프로파일 참고).
 
 ## 리소스 제한 (폭주 방지)
 
@@ -78,15 +80,20 @@ agentpod run --tool opencode
 ```
 크레덴셜은 도구별로 분리 저장·영속: claude→`~/.agent/claude`, codex→`~/.agent/codex`, opencode→`~/.agent/opencode`.
 
-## 프로파일 (계정 분리)
+## 프로파일 (기본은 프로젝트별 자동 분리)
 
-`--profile`(또는 `AGENT_PROFILE`)로 컨테이너별 다른 계정(크레덴셜 세트)을 씁니다. 지정 시
-컨테이너명 `agent-<id>--p--<profile>`, 크레덴셜 경로 `~/.agent/profiles/<name>/<tool>`.
+`--profile`을 **안 쓰면**, 플러그인/스킬 설치 상태가 프로젝트 폴더마다 자동으로 격리됩니다.
+한 프로젝트 컨테이너에서 설치한 플러그인이 다른 프로젝트로 새지 않습니다. 단, **로그인은
+프로파일과 무관하게 항상 공유**됩니다.
 
 ```bash
-agentpod run --profile bot            # 봇 계정
-agentpod run                          # 기본(공용) 계정
+agentpod run                          # 기본: 이 프로젝트만의 플러그인 상태
+agentpod run --profile bot            # 명시: "bot"이라는 이름으로 여러 프로젝트가 상태 공유
 ```
+
+지정 시 컨테이너명 `agent-<id>--p--<profile>`, 크레덴셜 경로 `~/.agent/profiles/<name>/<tool>`.
+같은 `--profile` 이름을 여러 프로젝트에 쓰면 그 프로젝트들끼리 플러그인 상태를 의도적으로
+공유/복사하는 효과가 있습니다. `run/shell/stop/rm/export` 전부에 적용됩니다.
 
 ## mise (툴체인 버전)
 
@@ -140,6 +147,24 @@ enabled = true                  # (선택, 기본 true)
 - **위치**: 프로젝트 루트(= 컨테이너 작업 디렉토리). `agent.toml`·`skills.toml` 둘 다 읽어 병합.
 - 내부적으로 `claude plugin marketplace add` + `claude plugin install`로 번역됩니다.
 - 자세한 추가 방법(커스텀 스킬·문제 해결): [skills-guide](docs/skills-guide.html)
+
+## 팀원과 공유하기 — `agentpod export`
+
+세션 중에 설치한 플러그인/스킬, 붙인 MCP 서버는 기본적으로 프로젝트별 격리 상태(위 프로파일)에만
+남아 `git clone`해도 자동으로 안 따라옵니다. `agentpod export`가 지금 상태를 프로젝트 파일로
+스냅샷합니다:
+
+```bash
+agentpod export
+# → agent.toml에 [[skills]] 추가 (superpowers는 기본 제공이라 제외)
+# → .mcp.json에 mcpServers 추가
+# → 시크릿(MCP env/헤더 값)은 .mcp.json에 안 박히고 .env(gitignore)로 분리
+```
+
+`git diff agent.toml .mcp.json`으로 확인 후 커밋·푸시하면, 팀원은 `git clone` +
+`agentpod run`만으로 같은 스킬이 자동 설치되고 MCP 서버가 자동 승인됩니다. `.mcp.json`의
+`${VAR}`가 참조하는 실제 값은 각자 자기 `.env`에 채워야 합니다(값 자체는 시크릿이라 공유 대상이
+아님). 자세한 내용: [skills-guide](docs/skills-guide.html)
 
 ## 컨테이너별 MD 컨텍스트
 

@@ -236,13 +236,15 @@ projectId = <basename(경로) 소문자·정규화>-<sha256(절대경로)[:12]>
 
 ### 4.4 크레덴셜 격리 + 프로파일 (AI 계정)
 
-**기본값 = 호스트의 AI Agent 계정.** 컨테이너별로 계정을 분리할 수 있되, 지정 안 하면 공용 에이전트 계정을 쓴다.
+**로그인은 항상 공유, 플러그인/스킬 설치 상태는 프로젝트별로 기본 격리.** 이 둘은 서로 다른 마운트/분리 규칙을 따른다 (2026-07 변경 — 예전엔 둘 다 프로파일 미지정 시 통째로 공유했다).
 
-- **디폴트(미설정)**: 호스트의 **AI Agent 계정** = `~/.agent/claude` → 컨테이너 `/home/agent/.claude` bind mount. 이건 사람의 개인 `~/.claude`가 아니라 **호스트에 둔 에이전트 전용 공용 계정**이다.
-- **컨테이너별 분리(설정 시)**: 프로파일(참조: `profile.ts`) = `~/.agent/profiles/<name>/claude`. `--profile <name>` 또는 `AGENT_PROFILE`로 지정 → **컨테이너 이름 접미사 + 마운트 경로**로 번역.
-- **폴백 규칙**: 컨테이너에 프로파일이 지정되지 않으면 → 디폴트(`~/.agent/claude`, 호스트 AI Agent 계정)로.
+- **로그인(`.claude.json`)**: `--profile` 지정 여부와 무관하게 항상 `~/.agent/claude.json`(또는 `--profile <name>` 지정 시 `~/.agent/profiles/<name>/claude.json`)에 공유. 한 번 로그인하면 그 프로파일을 쓰는 모든 프로젝트에서 그대로 유효 — 재로그인 강제 없음.
+- **플러그인/스킬 설치 상태(`.claude` 디렉토리)**: **디폴트(미설정)**는 `project_id` 기준 자동 분리 = `~/.agent/profiles/<project_id>/claude` → 컨테이너 `/home/agent/.claude` bind mount. 한 프로젝트 컨테이너에서 설치한 플러그인이 다른 프로젝트 컨테이너로 새지 않는다.
+- **명시적 공유(`--profile <name>` 또는 `AGENT_PROFILE`)**: `~/.agent/profiles/<name>/claude`로 대체 — 같은 이름을 여러 프로젝트에 쓰면 그 프로젝트들끼리 플러그인 상태를 의도적으로 공유/복사하는 효과. 컨테이너 이름에도 `--p--<name>` 접미사가 붙는다.
 - 첫 사용 시 그 컨테이너 안에서 1회 로그인 → bind mount로 영속. 컨테이너가 죽어도 로그인 유지.
-- 멀티툴(§4.10)이면 계정 저장소는 도구별로 분리(claude→`.claude`, gemini→`.gemini` …). 프로파일은 이 저장소 세트를 통째로 대체한다.
+- 멀티툴(§4.10)이면 계정 저장소는 도구별로 분리(claude→`.claude`, codex→`.codex` …). 이 프로젝트별 자동 분리 규칙은 모든 도구의 크레덴셜 디렉토리에 동일하게 적용된다 (로그인 공유 예외는 claude의 `.claude.json`에만 해당).
+- **호스트 사전 설치 (`src/agentpod/plugins.py: seed_superpowers`)**: 컨테이너가 뜨기 직전, 호스트에 있는 `claude` CLI로 그 프로젝트의 격리된 creds 디렉토리에 superpowers를 미리 설치·활성화해둔다(`CLAUDE_CONFIG_DIR` 환경변수로 대상 지정) — 그러면 컨테이너 안 entrypoint(§4.6)의 설치 단계는 대부분 "이미 있음"을 보고 건너뛰어, 매 컨테이너 부팅마다 git clone하지 않아도 된다. best-effort: 호스트에 `claude`가 없거나, 설치 결과가 불완전하면(예: 크로스-OS `claude` 바이너리가 `CLAUDE_CONFIG_DIR`를 잘못 해석해 마켓플레이스 등록만 되고 실제 플러그인 파일은 못 받아온 경우) 만든 것을 전부 롤백하고 컨테이너 entrypoint의 설치로 폴백한다.
+- **팀원과 공유 (`agentpod export`)**: 위 상태는 전부 호스트에만 남아 `git clone`으로 안 옮겨진다. `agentpod export`가 현재 프로젝트에 설치된 플러그인/스킬(baseline인 superpowers는 제외)을 `agent.toml`의 `[[skills]]`로, `claude mcp add`로 붙인 MCP 서버를 `.mcp.json`으로 스냅샷한다. MCP의 `env`/헤더 값은 `${VAR}` 플레이스홀더로 치환되고 실제 값은 `.env`(gitignore)로 분리되어 시크릿이 커밋 파일에 박히지 않는다.
 
 ### 4.5 Git 신원 (전용 봇 신원 — 호스트 의존 없음)
 
