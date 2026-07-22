@@ -8,10 +8,20 @@ from pathlib import Path
 import typer
 
 from . import context as context_mod
-from . import config, docker_ctl, naming, paths, registry, session
+from . import config, docker_ctl, naming, paths, plugins, registry, session
 from .docker_ctl import Mount
 
-app = typer.Typer(help="Docker-isolated AI coding agent containers.", no_args_is_help=True)
+app = typer.Typer(
+    help="Docker-isolated AI coding agent containers.",
+    no_args_is_help=True,
+    epilog=(
+        "Tool selection (claude | codex | opencode) is a per-command flag, not shown "
+        "above - see `agentpod run --help` / `agentpod shell --help`.\n\n"
+        "Examples:\n\n"
+        "agentpod run --tool codex\n\n"
+        "agentpod shell --tool opencode"
+    ),
+)
 
 IMAGE_TAG = "agentpod:latest"
 _DOCKERFILE = Path(__file__).resolve().parent.parent.parent / "Dockerfile"
@@ -102,6 +112,8 @@ def ensure_container(
     state = docker_ctl.container_state(cname)
     if state == "running":
         return cname
+    if registry.get_tool(tool).uses_claude_json:
+        plugins.seed_superpowers(paths.claude_creds_dir(profile))
     if state == "exited":
         docker_ctl.start(cname)
         return cname
@@ -175,7 +187,7 @@ def run(
     pids: int = _PID_OPT,
     extra: list[str] = typer.Argument(None, help="Extra args passed to the tool."),
 ) -> None:
-    """Spawn/reuse this project's container and run the tool interactively."""
+    """Spawn/reuse this project's container and run the tool interactively (--tool claude|codex|opencode)."""
     _require_docker()
     _ensure_image()
     prof = _profile(profile)
@@ -194,7 +206,7 @@ def shell(
     cpus: str = _CPU_OPT,
     pids: int = _PID_OPT,
 ) -> None:
-    """Open an interactive bash shell in this project's container."""
+    """Open an interactive bash shell in this project's container (--tool claude|codex|opencode)."""
     _require_docker()
     _ensure_image()
     prof = _profile(profile)
