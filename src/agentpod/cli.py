@@ -338,5 +338,30 @@ def context(target: str = typer.Argument(".")) -> None:
         typer.echo(f"(does not exist yet — create it and add CLAUDE.md / *.md)", err=True)
 
 
+@app.command()
+def export(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> None:
+    """Write installed claude plugins/skills + MCP servers into agent.toml/.mcp.json for sharing."""
+    path = os.getcwd() if target in (".", "") else target
+    project_path = Path(path).resolve()
+    pid = naming.project_id(str(project_path))
+    prof = _profile(profile)
+
+    added_skills = plugins.export_skills(
+        paths.claude_creds_dir(creds_profile(prof, pid)), project_path / "agent.toml"
+    )
+    added_mcp = plugins.export_mcp_servers(
+        paths.claude_json_path(prof), f"/project/{pid}", project_path
+    )
+
+    if not added_skills and not added_mcp:
+        typer.echo("Nothing new to export (already declared, or nothing beyond the baseline).")
+        return
+    if added_skills:
+        typer.echo(f"agent.toml: added skill(s) {', '.join(added_skills)}")
+    if added_mcp:
+        typer.echo(f".mcp.json: added MCP server(s) {', '.join(added_mcp)} (secrets written to .env)")
+    typer.echo("Review the diff, then commit agent.toml / .mcp.json. Never commit .env.")
+
+
 if __name__ == "__main__":
     app()

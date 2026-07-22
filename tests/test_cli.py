@@ -157,3 +157,43 @@ def test_build_mounts_default_isolates_codex_creds_too(monkeypatch, tmp_path):
     mounts = cli.build_mounts("jira-abc123", str(tmp_path / "repo"), tool="codex")
     creds = next(m for m in mounts if m.container == "/home/agent/.codex")
     assert creds.host == str(paths.tool_creds_dir("codex", "jira-abc123"))
+
+
+def test_export_writes_skills_and_mcp_for_the_current_project(monkeypatch, tmp_path):
+    import json
+
+    from agentpod import naming, paths
+
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    paths.ensure_layout()
+
+    project_path = tmp_path / "repo"
+    project_path.mkdir()
+    monkeypatch.chdir(project_path)
+    pid = naming.project_id(str(project_path))
+
+    creds = paths.claude_creds_dir(pid)
+    (creds / "plugins").mkdir(parents=True)
+    (creds / "plugins" / "installed_plugins.json").write_text(
+        json.dumps({"plugins": {"my-tool@my-market": [{}]}})
+    )
+    (creds / "settings.json").write_text(json.dumps({"enabledPlugins": {"my-tool@my-market": True}}))
+    (creds / "plugins" / "known_marketplaces.json").write_text(
+        json.dumps({"my-market": {"source": {"source": "github", "repo": "acme/my-tool"}}})
+    )
+
+    cj = paths.claude_json_path()
+    cj.write_text(
+        json.dumps(
+            {"projects": {f"/project/{pid}": {"mcpServers": {"foo": {"command": "npx", "env": {"KEY": "s3cr3t"}}}}}}
+        )
+    )
+
+    cli.export(target=".", profile=None)
+
+    manifest = (project_path / "agent.toml").read_text()
+    assert 'name = "my-tool"' in manifest
+    mcp = json.loads((project_path / ".mcp.json").read_text())
+    assert mcp["mcpServers"]["foo"]["env"]["KEY"] == "${FOO_KEY}"
+    assert "s3cr3t" not in (project_path / ".mcp.json").read_text()
+    assert "FOO_KEY=s3cr3t" in (project_path / ".env").read_text()
