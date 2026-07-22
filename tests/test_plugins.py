@@ -26,6 +26,27 @@ def test_seed_skips_when_claude_not_on_path(tmp_path, monkeypatch):
     assert not (tmp_path / "plugins").exists()
 
 
+def _write_fully_seeded_state(creds_dir):
+    (creds_dir / "plugins" / "marketplaces" / plugins.MARKETPLACE).mkdir(parents=True, exist_ok=True)
+    plugin_cache = creds_dir / "plugins" / "cache" / plugins.MARKETPLACE / plugins.PLUGIN_NAME / "6.1.1"
+    plugin_cache.mkdir(parents=True, exist_ok=True)
+    (plugin_cache / "plugin.json").write_text("{}")  # real content -- what a genuine fetch produces
+    (creds_dir / "plugins" / "installed_plugins.json").write_text(
+        json.dumps({"plugins": {plugins.PLUGIN: [{}]}})
+    )
+    (creds_dir / "plugins" / "known_marketplaces.json").write_text(
+        json.dumps({plugins.MARKETPLACE: {"source": {"source": "github", "repo": plugins.MARKETPLACE_SOURCE}}})
+    )
+    (creds_dir / "settings.json").write_text(
+        json.dumps(
+            {
+                "enabledPlugins": {plugins.PLUGIN: True},
+                "extraKnownMarketplaces": {plugins.MARKETPLACE: {"source": {"source": "github"}}},
+            }
+        )
+    )
+
+
 def test_seed_runs_add_install_enable_and_cleans_stray_files(tmp_path, monkeypatch):
     monkeypatch.setattr(plugins.shutil, "which", lambda _name: "/usr/bin/claude")
     calls = []
@@ -33,7 +54,7 @@ def test_seed_runs_add_install_enable_and_cleans_stray_files(tmp_path, monkeypat
     def fake_run(cmd, **kwargs):
         calls.append(cmd)
         if cmd[1:4] == ["plugin", "marketplace", "add"]:
-            (tmp_path / "plugins" / "marketplaces" / plugins.MARKETPLACE).mkdir(parents=True)
+            _write_fully_seeded_state(tmp_path)
             (tmp_path / ".claude.json").write_text("{}")
             (tmp_path / "backups").mkdir()
         return None
@@ -62,6 +83,59 @@ def test_seed_stops_early_if_a_step_raises(tmp_path, monkeypatch):
     monkeypatch.setattr(plugins.subprocess, "run", fake_run)
     plugins.seed_superpowers(tmp_path)  # must not raise
     assert len(calls) == 1
+
+
+def test_seed_rolls_back_when_final_state_is_inconsistent(tmp_path, monkeypatch):
+    """Simulates a `claude` binary that runs without raising (e.g. a cross-OS
+    binary reached through WSL PATH interop that can't resolve
+    CLAUDE_CONFIG_DIR) and registers the marketplace + flips enabledPlugins,
+    but never actually fetches the plugin's content into the cache dir --
+    the exact inconsistency observed for real: `claude plugin list`/`details`
+    then can't find usable skills despite settings.json claiming it's enabled.
+    seed_superpowers must detect this and undo everything, so the directory
+    looks untouched and the container's own entrypoint retries."""
+    monkeypatch.setattr(plugins.shutil, "which", lambda _name: "/usr/bin/claude")
+
+    def fake_run(cmd, **kwargs):
+        if cmd[1:4] == ["plugin", "marketplace", "add"]:
+            (tmp_path / "plugins" / "marketplaces" / plugins.MARKETPLACE).mkdir(parents=True)
+            (tmp_path / "plugins" / "cache" / plugins.MARKETPLACE).mkdir(parents=True)  # no PLUGIN_NAME subdir
+            (tmp_path / "plugins" / "known_marketplaces.json").write_text(
+                json.dumps({plugins.MARKETPLACE: {"source": {"source": "github"}}})
+            )
+            (tmp_path / "settings.json").write_text(
+                json.dumps({"enabledPlugins": {plugins.PLUGIN: True}})
+            )
+        return None
+
+    monkeypatch.setattr(plugins.subprocess, "run", fake_run)
+    plugins.seed_superpowers(tmp_path)
+
+    assert not (tmp_path / "plugins" / "marketplaces" / plugins.MARKETPLACE).exists()
+    assert not (tmp_path / "plugins" / "cache" / plugins.MARKETPLACE).exists()
+    known = json.loads((tmp_path / "plugins" / "known_marketplaces.json").read_text())
+    assert plugins.MARKETPLACE not in known
+    settings = json.loads((tmp_path / "settings.json").read_text())
+    assert plugins.PLUGIN not in settings.get("enabledPlugins", {})
+
+    # A retry (e.g. by the container's own entrypoint) sees a clean slate,
+    # not something the marker-check would mistake for already-seeded.
+    assert not (tmp_path / "plugins" / "marketplaces" / plugins.MARKETPLACE).is_dir()
+
+
+def test_seed_rollback_leaves_unrelated_settings_alone(tmp_path, monkeypatch):
+    monkeypatch.setattr(plugins.shutil, "which", lambda _name: "/usr/bin/claude")
+    (tmp_path / "plugins").mkdir(parents=True)
+    (tmp_path / "settings.json").write_text(json.dumps({"someOtherKey": True, "enabledPlugins": {"x@y": True}}))
+
+    def fake_run(cmd, **kwargs):
+        return None  # never registers anything -> inconsistent -> rollback
+
+    monkeypatch.setattr(plugins.subprocess, "run", fake_run)
+    plugins.seed_superpowers(tmp_path)
+
+    settings = json.loads((tmp_path / "settings.json").read_text())
+    assert settings == {"someOtherKey": True, "enabledPlugins": {"x@y": True}}
 
 
 def _write_installed_plugins(creds_dir, entries):

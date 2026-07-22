@@ -24,7 +24,8 @@ from pathlib import Path
 
 MARKETPLACE = "claude-plugins-official"
 MARKETPLACE_SOURCE = "anthropics/claude-plugins-official"
-PLUGIN = f"superpowers@{MARKETPLACE}"
+PLUGIN_NAME = "superpowers"
+PLUGIN = f"{PLUGIN_NAME}@{MARKETPLACE}"
 
 # Plugins guaranteed by the container's own baseline install (agent-entrypoint.sh
 # + seed_superpowers above), so exporting them into a project manifest would
@@ -34,8 +35,67 @@ BASELINE_SKILL_NAMES = {"superpowers"}
 MANIFESTS = ("agent.toml", "skills.toml")
 
 
+def _is_fully_seeded(creds_dir: Path) -> bool:
+    """Verify the plugin actually has usable content on disk, not just registry
+    bookkeeping. `installed_plugins.json` is NOT checked here -- observed
+    empty (`"plugins": {}`) even for a fully working install (confirmed via
+    `claude plugin details`, which lists all skills correctly) on the claude
+    CLI versions this was tested against, so it's not a trustworthy signal.
+    The plugin cache directory actually holding files IS trustworthy: it's
+    exactly what's missing in the broken case (e.g. a cross-OS `claude`
+    binary -- a Windows install reached through WSL PATH interop -- that
+    registers the marketplace/enables the plugin but never fetches its
+    content).
+    """
+    cache_dir = creds_dir / "plugins" / "cache" / MARKETPLACE / PLUGIN_NAME
+    if not cache_dir.is_dir() or not any(cache_dir.iterdir()):
+        return False
+    enabled = _read_json(creds_dir / "settings.json").get("enabledPlugins", {})
+    return enabled.get(PLUGIN) is True
+
+
+def _remove_key(path: Path, *key_path: str) -> None:
+    if not path.exists():
+        return
+    data = _read_json(path)
+    node = data
+    for k in key_path[:-1]:
+        node = node.get(k)
+        if not isinstance(node, dict):
+            return
+    node.pop(key_path[-1], None)
+    try:
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    except Exception:  # noqa: BLE001 - best-effort cleanup
+        pass
+
+
+def _undo_partial_seed(creds_dir: Path) -> None:
+    """Best-effort rollback after a seed attempt that raised, or ran to
+    completion but left an inconsistent installed+enabled state -- e.g.
+    `claude` on PATH resolved to a cross-OS binary (a Windows install reached
+    through WSL PATH interop) that can't interpret a same-OS CLAUDE_CONFIG_DIR
+    path, and silently no-ops or half-writes instead of erroring. Removes
+    exactly what a clean seed would have created, so the shared dir goes back
+    to "nothing seeded" and the container's own (guaranteed same-OS)
+    entrypoint install can complete it instead of inheriting a broken
+    half-state.
+    """
+    for rel in ("marketplaces", "cache"):
+        p = creds_dir / "plugins" / rel / MARKETPLACE
+        if p.exists():
+            shutil.rmtree(p, ignore_errors=True)
+    _remove_key(creds_dir / "plugins" / "known_marketplaces.json", MARKETPLACE)
+    _remove_key(creds_dir / "plugins" / "installed_plugins.json", "plugins", PLUGIN)
+    _remove_key(creds_dir / "settings.json", "enabledPlugins", PLUGIN)
+    _remove_key(creds_dir / "settings.json", "extraKnownMarketplaces", MARKETPLACE)
+
+
 def seed_superpowers(creds_dir: Path) -> None:
-    """Install+enable superpowers into creds_dir if not already there (best-effort)."""
+    """Install+enable superpowers into creds_dir if not already there (best-effort).
+    Verifies the result and rolls back to a clean slate on any inconsistency
+    (see _undo_partial_seed) rather than trusting a lack of exceptions.
+    """
     if (creds_dir / "plugins" / "marketplaces" / MARKETPLACE).is_dir():
         return
     claude_bin = shutil.which("claude")
@@ -58,7 +118,13 @@ def seed_superpowers(creds_dir: Path) -> None:
                 timeout=120,
             )
         except Exception:  # noqa: BLE001 - best-effort, never block the CLI
+            _undo_partial_seed(creds_dir)
             return
+
+    if not _is_fully_seeded(creds_dir):
+        _undo_partial_seed(creds_dir)
+        return
+
     # CLAUDE_CONFIG_DIR also writes a top-level .claude.json/backups here, which
     # isn't meaningful in this spot (the container mounts .claude.json
     # separately) -- drop it so the seeded dir only holds real .claude state.
