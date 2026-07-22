@@ -121,20 +121,6 @@ agentpod run</code></pre>
 <section id="quickstart">
 <h2><span class="num">3</span>빠른 시작</h2>
 
-<div class="note"><b>가장 간단히 — Docker만 (Python·설치 불필요)</b>
-<pre><code><span class="cmt"># 1) 이미지 만들기 — AgentPod 저장소 폴더에서 딱 1회</span>
-docker build -t agentpod:latest .
-
-<span class="cmt"># 2) 실행 — 작업할 폴더(예: agents/apply-verify)에서</span>
-mkdir -p ~/.agent/claude
-docker run --rm -it -v "$PWD":/project -w /project \
-  -v ~/.agent/claude:/home/agent/.claude \
-  agentpod:latest claude --dangerously-skip-permissions</code></pre>
-그 폴더의 <code>CLAUDE.md</code>·<code>.mcp.json</code>을 자동으로 읽고, superpowers도 자동 설치됩니다. 매번 길게 치기 싫으면 별칭 한 줄:
-<pre><code>echo 'agentpod(){ mkdir -p ~/.agent/claude; docker run --rm -it -v "$PWD":/project -w /project -v ~/.agent/claude:/home/agent/.claude agentpod:latest claude --dangerously-skip-permissions "$@"; }' >> ~/.bashrc &amp;&amp; source ~/.bashrc
-<span class="cmt"># 이후: 작업 폴더에서   agentpod</span></code></pre>
-<span class="muted">간단한 대신 결정적 이름·세션 자동정리·다중 컨테이너 관리 같은 <code>agentpod</code> CLI 편의 기능은 빠집니다. 그 기능이 필요하면 아래 정식 설치를 쓰세요. 또 <b>리소스 제한 기본값도 자동 적용되지 않으니</b> docker run에 <code>--memory 4g --cpus 2 --pids-limit 512</code>를 직접 붙이세요(§4).</span></div>
-
 <ol class="steps">
   <li><b>이미지 빌드</b> (최초 1회, 몇 분 소요)
     <pre><code>agentpod build</code></pre></li>
