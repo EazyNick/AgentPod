@@ -28,7 +28,11 @@ def test_normalize_source_strips_prefixes(skills):
 
 def test_resolve_name_only_uses_catalog(skills):
     r = skills.resolve({"name": "superpowers"})
-    assert r == {"name": "superpowers", "source": "obra/superpowers", "marketplace": "superpowers-dev"}
+    assert r == {
+        "name": "superpowers",
+        "source": "anthropics/claude-plugins-official",
+        "marketplace": "claude-plugins-official",
+    }
 
 
 def test_resolve_custom_source(skills):

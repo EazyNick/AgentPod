@@ -8,10 +8,10 @@ via `claude plugin`. Best-effort and idempotent — never fails the container bo
 Manifest schema (either file):
 
     [[skills]]
-    name = "superpowers"                    # required (plugin name)
-    source = "github:obra/superpowers"      # optional if name is in the catalog
-    marketplace_name = "superpowers-dev"    # optional; auto-detected from `add` output
-    enabled = true                          # optional (default true)
+    name = "superpowers"                          # required (plugin name)
+    source = "github:anthropics/claude-plugins-official"  # optional if name is in the catalog
+    marketplace_name = "claude-plugins-official"  # optional; auto-detected from `add` output
+    enabled = true                                # optional (default true)
 
 Well-known skills need only `name` (resolved via CATALOG below).
 """
@@ -24,7 +24,7 @@ import sys
 
 # name -> (marketplace source repo, registered marketplace name)
 CATALOG = {
-    "superpowers": ("obra/superpowers", "superpowers-dev"),
+    "superpowers": ("anthropics/claude-plugins-official", "claude-plugins-official"),
 }
 
 MANIFESTS = ("agent.toml", "skills.toml")

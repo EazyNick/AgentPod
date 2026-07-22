@@ -39,11 +39,25 @@ fi
 # 3. Install & enable the superpowers Claude Code plugin (idempotent, best-effort).
 #    ~/.claude is bind-mounted from the host, so this persists and is shared
 #    across containers (like login). Public git clone — no auth needed; never
-#    fails the boot. Marketplace name "superpowers-dev" is declared by the repo.
+#    fails the boot. Installed from the official marketplace (not obra/superpowers'
+#    own "superpowers-dev" marketplace) so agents get the same plugin shown at
+#    claude-plugins-official.
 mkdir -p /home/agent/.claude
-if ! claude plugin list 2>/dev/null | grep -q "superpowers@superpowers-dev"; then
-  claude plugin marketplace add obra/superpowers >/dev/null 2>&1 || true
-  claude plugin install superpowers@superpowers-dev >/dev/null 2>&1 || true
+if ! claude plugin list 2>/dev/null | grep -q "superpowers@claude-plugins-official"; then
+  claude plugin marketplace add anthropics/claude-plugins-official >/dev/null 2>&1 || true
+  claude plugin install superpowers@claude-plugins-official >/dev/null 2>&1 || true
+fi
+# Remove any stale install from the old obra/superpowers-dev marketplace so it
+# doesn't sit alongside the official one on a shared ~/.claude bind mount.
+claude plugin uninstall superpowers@superpowers-dev >/dev/null 2>&1 || true
+# `plugin install` leaves the plugin DISABLED, so its skills never load. Enable
+# it on EVERY boot (idempotent) — this MUST live outside the guard above: once
+# installed the plugin is already listed, so that block is skipped and the
+# enable would never run. Log the outcome instead of swallowing it silently.
+if claude plugin enable superpowers@claude-plugins-official >/dev/null 2>&1; then
+  echo "[agent] superpowers plugin enabled."
+else
+  echo "[agent] WARN: could not enable superpowers plugin — run 'claude plugin enable superpowers@claude-plugins-official' inside the container." >&2
 fi
 
 # 3c. Auto-approve project-scoped MCP servers (.mcp.json) for autonomous runs
