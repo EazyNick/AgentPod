@@ -8,32 +8,38 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너. 프로젝트마�
 
 ## 요구사항
 
-- WSL2/Linux/Raspberry Pi OS(64bit) + Docker
+- Windows 10/11 + Docker Desktop
 - Python 3.10+
 
 ## 설치 (한 번에)
 
-리눅스/WSL2/라즈베리파이에서 저장소 루트에서:
+저장소 루트에서 `install.bat`을 더블클릭하거나 터미널에서:
 
-```bash
-./install.sh
+```
+install.bat
 ```
 
-시스템 패키지(python3/venv/pip/pipx) 설치 → `agentpod` 명령을 PATH에 등록 →
-에이전트 이미지 빌드까지 자동으로 합니다. 이미지 빌드를 건너뛰려면 `./install.sh --no-build`.
+Docker Desktop·Python 3.10+ 확인 → 전용 venv에 `agentpod` 명령 설치(PATH 등록) →
+에이전트 이미지 빌드까지 자동으로 합니다. 이미지 빌드를 건너뛰려면 `install.bat --no-build`.
 
-> 설치 후 현재 셸에서 `agentpod`가 안 잡히면 새 터미널을 열거나 `source ~/.bashrc`.
+> 설치 후 현재 창에서 바로 `agentpod`가 잡힙니다. 새 터미널 창도 자동으로 PATH가 적용됩니다.
 > 남은 수동 단계는 **Claude 인증 1회**뿐입니다(아래 인증 참고).
 
 <details><summary>수동 설치 (스크립트를 쓰지 않을 때)</summary>
 
-```bash
-python3 -m venv ~/.venvs/agentpod && source ~/.venvs/agentpod/bin/activate
-pip install -e .
+```powershell
+python -m venv $env:USERPROFILE\.venvs\agentpod
+& $env:USERPROFILE\.venvs\agentpod\Scripts\pip.exe install -e .
 ```
 </details>
 
-## 사용
+## 실행 — 폴더 선택 메뉴로 (가장 쉬움)
+
+`agentpod-menu.bat`을 더블클릭하면 `agents\` 아래 폴더들이 번호로 뜨고, 골라서
+바로 실행(`run`)·셸 접속(`shell`)·공유(`export`)까지 할 수 있습니다. 타이핑도
+경로도 몰라도 됩니다.
+
+## 사용 — 커맨드로 직접
 
 ```bash
 agentpod build                 # 에이전트 이미지 빌드 (최초 1회)
