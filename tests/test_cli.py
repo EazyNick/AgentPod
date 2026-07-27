@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from agentpod import cli
 from agentpod.docker_ctl import Mount
@@ -197,3 +198,113 @@ def test_export_writes_skills_and_mcp_for_the_current_project(monkeypatch, tmp_p
     assert mcp["mcpServers"]["foo"]["env"]["KEY"] == "${FOO_KEY}"
     assert "s3cr3t" not in (project_path / ".mcp.json").read_text()
     assert "FOO_KEY=s3cr3t" in (project_path / ".env").read_text()
+
+
+def test_list_agent_folders_sorted(tmp_path):
+    (tmp_path / "agents" / "n8n").mkdir(parents=True)
+    (tmp_path / "agents" / "jira").mkdir(parents=True)
+    (tmp_path / "agents" / "verify").mkdir(parents=True)
+    (tmp_path / "agents" / "not_a_dir.txt").write_text("x")
+
+    names = [p.name for p in cli._list_agent_folders(tmp_path)]
+    assert names == ["jira", "n8n", "verify"]
+
+
+def test_list_agent_folders_empty_without_agents_dir(tmp_path):
+    assert cli._list_agent_folders(tmp_path) == []
+
+
+def test_interactive_menu_quits_immediately(monkeypatch, tmp_path):
+    (tmp_path / "agents" / "jira").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "Q")
+    cli._interactive_menu()  # must not raise / not touch docker
+
+
+def test_interactive_menu_invalid_choice_then_quit(monkeypatch, tmp_path):
+    (tmp_path / "agents" / "jira").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    responses = iter(["9", "Q"])  # 9 is out of range
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: next(responses))
+    cli._interactive_menu()
+
+
+def test_interactive_menu_selects_folder_and_backs_out(monkeypatch, tmp_path):
+    (tmp_path / "agents" / "jira").mkdir(parents=True)
+    (tmp_path / "agents" / "n8n").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    responses = iter(["1", "B", "Q"])
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: next(responses))
+    cli._interactive_menu()
+    assert Path.cwd() == tmp_path  # cwd restored after visiting the sub-menu
+
+
+def test_interactive_menu_custom_path(monkeypatch, tmp_path):
+    other = tmp_path / "elsewhere"
+    other.mkdir()
+    monkeypatch.chdir(tmp_path)
+    responses = iter(["P", str(other), "B", "Q"])
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: next(responses))
+    cli._interactive_menu()
+
+
+def test_agent_action_menu_run_invokes_run_in_target_dir(monkeypatch, tmp_path):
+    target = tmp_path / "agents" / "jira"
+    target.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    calls = []
+
+    def fake_run(**kwargs):
+        calls.append((Path.cwd(), kwargs))
+
+    monkeypatch.setattr(cli, "run", fake_run)
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "R")
+
+    cli._agent_action_menu(target)
+
+    assert len(calls) == 1
+    assert calls[0][0] == target
+    assert Path.cwd() == tmp_path  # cwd restored after run() returns
+
+
+def test_agent_action_menu_shell_invokes_shell(monkeypatch, tmp_path):
+    target = tmp_path / "agents" / "jira"
+    target.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    calls = []
+    monkeypatch.setattr(cli, "shell", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "S")
+
+    cli._agent_action_menu(target)
+    assert len(calls) == 1
+
+
+def test_agent_action_menu_export_loops_back(monkeypatch, tmp_path):
+    target = tmp_path / "agents" / "jira"
+    target.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    export_calls = []
+    monkeypatch.setattr(cli, "export", lambda **kw: export_calls.append(kw))
+    responses = iter(["E", "", "B"])
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: next(responses))
+
+    cli._agent_action_menu(target)
+    assert len(export_calls) == 1
+    assert Path.cwd() == tmp_path
+
+
+def test_agent_action_menu_back_does_nothing(monkeypatch, tmp_path):
+    target = tmp_path / "agents" / "jira"
+    target.mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    for name in ("run", "shell", "export"):
+        monkeypatch.setattr(
+            cli, name, lambda **kw: (_ for _ in ()).throw(AssertionError(f"{name} should not be called"))
+        )
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "B")
+
+    cli._agent_action_menu(target)

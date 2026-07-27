@@ -36,7 +36,7 @@ python -m venv $env:USERPROFILE\.venvs\agentpod
 
 ## 실행 — 폴더 선택 메뉴로 (가장 쉬움)
 
-`agentpod-menu.bat`을 더블클릭하면 `agents\` 아래 폴더들이 번호로 뜨고, 골라서
+저장소 루트에서 `agentpod`라고만 치면 `agents\` 아래 폴더들이 번호로 뜨고, 골라서
 바로 실행(`run`)·셸 접속(`shell`)·공유(`export`)까지 할 수 있습니다. 타이핑도
 경로도 몰라도 됩니다. 자세한 사용법은 [메뉴 가이드](docs/windows/menu-guide.html) 참고.
 
