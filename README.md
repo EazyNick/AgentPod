@@ -13,14 +13,14 @@ Docker로 격리된 자율 AI 코딩 에이전트 컨테이너. 프로젝트마�
 
 ## 설치 (한 번에)
 
-저장소 루트에서 `install.bat`을 더블클릭하거나 터미널에서:
+저장소 루트에서 `install_windows.bat`을 더블클릭하거나 터미널에서:
 
 ```
-install.bat
+install_windows.bat
 ```
 
 Docker Desktop·Python 3.10+ 확인 → 전용 venv에 `agentpod` 명령 설치(PATH 등록) →
-에이전트 이미지 빌드까지 자동으로 합니다. 이미지 빌드를 건너뛰려면 `install.bat --no-build`.
+에이전트 이미지 빌드까지 자동으로 합니다. 이미지 빌드를 건너뛰려면 `install_windows.bat --no-build`.
 자세한 단계·문제 해결은 [설치 가이드](docs/windows/install-guide.html) 참고.
 
 > 설치 후 현재 창에서 바로 `agentpod`가 잡힙니다. 새 터미널 창도 자동으로 PATH가 적용됩니다.

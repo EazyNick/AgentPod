@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # AgentPod one-command installer for Linux / WSL2 / Raspberry Pi OS.
 #
-#   ./install.sh              # deps + agentpod CLI + build the image
-#   ./install.sh --no-build   # skip the image build (build later with: agentpod build)
+#   ./install_linux.sh              # deps + agentpod CLI + build the image
+#   ./install_linux.sh --no-build   # skip the image build (build later with: agentpod build)
 #
 # Installs system packages (python3/venv/pip/pipx), installs the `agentpod`
 # command on your PATH, and builds the agent image. Idempotent — safe to re-run.

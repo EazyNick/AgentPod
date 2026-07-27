@@ -1,8 +1,8 @@
 ﻿<#
 AgentPod one-command installer for native Windows (PowerShell 5.1+).
 
-    .\install.ps1              # deps + agentpod CLI + build the image
-    .\install.ps1 -NoBuild     # skip the image build (build later with: agentpod build)
+    .\install_windows.ps1              # deps + agentpod CLI + build the image
+    .\install_windows.ps1 -NoBuild     # skip the image build (build later with: agentpod build)
 
 Installs the `agentpod` CLI into a dedicated venv, puts it on PATH (this
 session and future ones), and builds the agent image. Idempotent -- safe to
@@ -85,4 +85,4 @@ Log "Next:"
 Log "  1) authenticate Claude once - put ANTHROPIC_API_KEY in your project's .env,"
 Log "     or run 'agentpod shell' then 'claude login'."
 Log "  2) cd <your-project> ; agentpod run"
-Log "  - or just double-click agentpod-menu.bat for a folder-picker menu."
+Log "  - or just type 'agentpod' with no arguments for a folder-picker menu."

@@ -160,8 +160,8 @@
     <p class="muted">Windows 쪽에 이미 소스가 있다면 리눅스로 복사: <code>cp -r /mnt/c/Users/&lt;you&gt;/Downloads/Project/AgentPod ~/AgentPod</code></p></li>
   <li><h3>설치 (한 번에)</h3>
     <p class="muted">시스템 패키지 + <code>agentpod</code> 명령(PATH 등록) + 이미지 빌드까지 자동:</p>
-    <pre><code><span class="p">$</span> ./install.sh                 <span class="cmt"># 빌드까지 한 번에</span>
-<span class="p">$</span> ./install.sh --no-build      <span class="cmt"># 이미지 빌드는 나중에</span></code></pre>
+    <pre><code><span class="p">$</span> ./install_linux.sh                 <span class="cmt"># 빌드까지 한 번에</span>
+<span class="p">$</span> ./install_linux.sh --no-build      <span class="cmt"># 이미지 빌드는 나중에</span></code></pre>
     <p class="muted">현재 셸에서 <code>agentpod</code>가 안 잡히면 새 터미널 또는 <code>source ~/.bashrc</code>. §3(venv)를 건너뛰고 이 스크립트만 써도 됩니다.</p></li>
   <li><h3>설치 확인 &amp; 유닛 테스트</h3>
     <pre><code><span class="p">$</span> agentpod --help

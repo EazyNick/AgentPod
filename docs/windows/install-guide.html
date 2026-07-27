@@ -103,16 +103,16 @@
     <pre><code><span class="p">PS&gt;</span> git clone &lt;repo-url&gt;
 <span class="p">PS&gt;</span> cd kaon_agentpod</code></pre></li>
   <li><h3>설치 스크립트 실행</h3>
-    <p class="muted"><code>install.bat</code>을 탐색기에서 <b>더블클릭</b>하거나, 터미널에서:</p>
-    <pre><code><span class="p">PS&gt;</span> .\install.bat
+    <p class="muted"><code>install_windows.bat</code>을 탐색기에서 <b>더블클릭</b>하거나, 터미널에서:</p>
+    <pre><code><span class="p">PS&gt;</span> .\install_windows.bat
 <span class="cmt"># 이미지 빌드를 나중에 하려면:</span>
-<span class="p">PS&gt;</span> .\install.bat --no-build</code></pre>
+<span class="p">PS&gt;</span> .\install_windows.bat --no-build</code></pre>
     <p class="muted">Docker·Python 확인 → 전용 venv(<code>%USERPROFILE%\.venvs\agentpod</code>)에 <code>agentpod</code> 설치 → 사용자 PATH 등록 → 이미지 빌드까지 자동으로 합니다.</p></li>
   <li><h3>설치 확인</h3>
     <pre><code><span class="p">PS&gt;</span> agentpod --help</code></pre>
     <p class="muted">설치 스크립트를 돌린 <b>그 창에서 바로</b> 잡힙니다. 새로 여는 터미널 창도 자동으로 PATH가 적용됩니다.</p></li>
 </ol>
-<div class="note warn"><b>알려진 이슈:</b> <code>pip install --upgrade pip</code>을 <code>pip.exe</code>로 직접 실행하면 Windows에서 "자기 자신을 수정할 수 없다"는 오류가 납니다(pip.exe가 실행 중인 자기 파일을 못 바꿈). <code>install.ps1</code>은 이 문제를 피하려고 <code>python -m pip</code> 형태로 실행합니다 — 수동 설치 시에도 이 방식을 쓰세요.</div>
+<div class="note warn"><b>알려진 이슈:</b> <code>pip install --upgrade pip</code>을 <code>pip.exe</code>로 직접 실행하면 Windows에서 "자기 자신을 수정할 수 없다"는 오류가 납니다(pip.exe가 실행 중인 자기 파일을 못 바꿈). <code>install_windows.ps1</code>은 이 문제를 피하려고 <code>python -m pip</code> 형태로 실행합니다 — 수동 설치 시에도 이 방식을 쓰세요.</div>
 </section>
 
 <section id="run">
@@ -160,7 +160,7 @@ ANTHROPIC_API_KEY=sk-ant-...</code></pre>
 <tr><td>Docker daemon not reachable</td><td>Docker Desktop 앱이 완전히 켜질 때까지(고래 아이콘 정적 상태) 기다린 뒤 재시도.</td></tr>
 <tr><td><code>python</code>이 안 잡힘</td><td>Python 설치 시 "Add python.exe to PATH"를 체크하지 않은 경우입니다. 재설치하거나 수동으로 PATH에 추가하세요.</td></tr>
 <tr><td>설치 후에도 <code>agentpod</code>가 안 잡힘</td><td>새 터미널 창을 열어보세요(PATH는 새 프로세스부터 적용). 그래도 안 되면 <code>%USERPROFILE%\.venvs\agentpod\Scripts</code>가 사용자 PATH에 있는지 확인.</td></tr>
-<tr><td><code>pip install --upgrade pip</code> 오류</td><td>정상적인 install.bat 실행이라면 이미 우회되어 있습니다. 수동 설치 중이라면 <code>python -m pip install --upgrade pip</code>로 실행하세요.</td></tr>
+<tr><td><code>pip install --upgrade pip</code> 오류</td><td>정상적인 install_windows.bat 실행이라면 이미 우회되어 있습니다. 수동 설치 중이라면 <code>python -m pip install --upgrade pip</code>로 실행하세요.</td></tr>
 <tr><td>한글이 깨져 보임(콘솔)</td><td><code>chcp 65001</code>로 콘솔 코드페이지를 UTF-8로 전환한 뒤 실행하세요. <code>.bat</code> 스크립트들은 이미 자동으로 처리합니다.</td></tr>
 <tr><td>마운트된 프로젝트 파일 쓰기 오류</td><td>Docker Desktop의 파일 공유 설정(Settings → Resources → File sharing)에서 해당 드라이브가 공유돼 있는지 확인.</td></tr>
 </table>
