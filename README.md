@@ -21,6 +21,7 @@ install.bat
 
 Docker Desktop·Python 3.10+ 확인 → 전용 venv에 `agentpod` 명령 설치(PATH 등록) →
 에이전트 이미지 빌드까지 자동으로 합니다. 이미지 빌드를 건너뛰려면 `install.bat --no-build`.
+자세한 단계·문제 해결은 [설치 가이드](docs/windows/install-guide.html) 참고.
 
 > 설치 후 현재 창에서 바로 `agentpod`가 잡힙니다. 새 터미널 창도 자동으로 PATH가 적용됩니다.
 > 남은 수동 단계는 **Claude 인증 1회**뿐입니다(아래 인증 참고).
@@ -37,7 +38,7 @@ python -m venv $env:USERPROFILE\.venvs\agentpod
 
 `agentpod-menu.bat`을 더블클릭하면 `agents\` 아래 폴더들이 번호로 뜨고, 골라서
 바로 실행(`run`)·셸 접속(`shell`)·공유(`export`)까지 할 수 있습니다. 타이핑도
-경로도 몰라도 됩니다.
+경로도 몰라도 됩니다. 자세한 사용법은 [메뉴 가이드](docs/windows/menu-guide.html) 참고.
 
 ## 사용 — 커맨드로 직접
 

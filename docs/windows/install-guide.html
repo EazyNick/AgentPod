@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentPod — Windows 설치 가이드</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --ink:#e6e8ec; --muted:#9aa3b2;
+    --line:#2a2f3a; --accent:#6ea8fe; --accent2:#7ee7c7; --warn:#f0b45f; --danger:#f2777a;
+    --code:#0b0d11; --radius:14px;
+  }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f6f7f9; --panel:#ffffff; --panel2:#f0f2f5; --ink:#1b1f27; --muted:#5b6472;
+      --line:#e2e6ec; --accent:#2f6fed; --accent2:#0f9d76; --warn:#b57614; --danger:#c23b3b; --code:#0d1117; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 96px}
+  header.hero{padding:56px 0 28px;border-bottom:1px solid var(--line)}
+  .kicker{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12.5px}
+  h1{font-size:clamp(27px,5vw,40px);line-height:1.15;margin:.35em 0 .25em;letter-spacing:-.02em}
+  .lead{color:var(--muted);font-size:18px;max-width:72ch}
+  .pill{display:inline-block;background:var(--panel2);border:1px solid var(--line);color:var(--muted);
+    border-radius:999px;padding:3px 11px;font-size:12.5px;margin:2px 6px 2px 0}
+  nav.toc{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:20px 0 34px;padding:10px 0;z-index:5}
+  nav.toc a{color:var(--muted);text-decoration:none;font-size:13.5px;margin-right:16px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  .tocscroll{overflow-x:auto}
+  h2{font-size:22px;margin:44px 0 6px;letter-spacing:-.01em;scroll-margin-top:64px}
+  h2 .num{color:var(--accent);font-variant-numeric:tabular-nums;margin-right:10px}
+  h3{font-size:16px;margin:22px 0 6px}
+  p{margin:10px 0}.muted{color:var(--muted)}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin:16px 0}
+  code{font-family:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+    background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+  pre{background:var(--code);color:#e6edf3;border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;overflow:auto;margin:12px 0;font-size:13.5px;line-height:1.6}
+  pre code{background:none;border:none;padding:0;color:inherit;font-size:inherit}
+  pre .p{color:#f0b45f}
+  .cmt{color:#7d8794}.k{color:#79c0ff}.s{color:#7ee787}.f{color:#d2a8ff}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:var(--panel2);font-weight:600}
+  .note{border-left:3px solid var(--accent);background:var(--panel);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0}
+  .note.warn{border-color:var(--warn)}.note.danger{border-color:var(--danger)}.note.ok{border-color:var(--accent2)}
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:16px 0}
+  ol.steps li{position:relative;padding:2px 0 18px 44px;margin:0}
+  ol.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:0;
+    width:30px;height:30px;border-radius:50%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--accent);font-weight:700;display:grid;place-items:center;font-size:14px}
+  ol.steps li::after{content:"";position:absolute;left:15px;top:32px;bottom:-2px;width:1px;background:var(--line)}
+  ol.steps li:last-child::after{display:none}
+  ol.steps li h3{margin-top:2px}
+  .check{list-style:none;padding:0;margin:12px 0}
+  .check li{padding:5px 0 5px 28px;position:relative;color:var(--muted)}
+  .check li::before{content:"✓";position:absolute;left:0;color:var(--accent2);font-weight:700}
+  footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13.5px}
+  a.link{color:var(--accent);text-decoration:none}a.link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">AgentPod · Windows</div>
+  <h1>Windows 설치 가이드</h1>
+  <p class="lead">WSL 없이 <b>네이티브 Windows</b>에서 AgentPod를 설치하고 첫 실행까지 하는 방법. Docker Desktop과 Python만 있으면 됩니다.</p>
+  <div style="margin-top:14px">
+    <span class="pill">Windows 10/11</span>
+    <span class="pill">Docker Desktop</span>
+    <span class="pill">Python 3.10+</span>
+    <span class="pill">WSL 불필요</span>
+  </div>
+</header>
+
+<nav class="toc"><div class="tocscroll">
+  <a href="#req">준비물</a>
+  <a href="#install">① 설치</a>
+  <a href="#run">② 첫 실행</a>
+  <a href="#verify">동작 확인</a>
+  <a href="#trouble">문제 해결</a>
+  <a href="#ref">명령어 요약</a>
+</div></nav>
+
+<section id="req">
+<h2><span class="num">0</span>준비물</h2>
+<div class="note ok"><b>체크리스트</b>
+<ul class="check">
+  <li>Windows 10 22H2+ 또는 Windows 11</li>
+  <li><a class="link" href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a> 설치 &amp; 실행 중</li>
+  <li><a class="link" href="https://www.python.org/downloads/">Python 3.10+</a> 설치 (설치 시 <b>"Add python.exe to PATH"</b> 체크)</li>
+</ul></div>
+<p class="muted">WSL2를 이미 쓰고 있다면 <a class="link" href="../wsl2-guide.html">WSL2 가이드</a>를 따라도 됩니다 — 이 가이드는 WSL 없이 Windows에서 바로 실행하는 경로입니다.</p>
+</section>
+
+<section id="install">
+<h2><span class="num">1</span>설치</h2>
+<ol class="steps">
+  <li><h3>소스 가져오기</h3>
+    <pre><code><span class="p">PS&gt;</span> git clone &lt;repo-url&gt;
+<span class="p">PS&gt;</span> cd kaon_agentpod</code></pre></li>
+  <li><h3>설치 스크립트 실행</h3>
+    <p class="muted"><code>install.bat</code>을 탐색기에서 <b>더블클릭</b>하거나, 터미널에서:</p>
+    <pre><code><span class="p">PS&gt;</span> .\install.bat
+<span class="cmt"># 이미지 빌드를 나중에 하려면:</span>
+<span class="p">PS&gt;</span> .\install.bat --no-build</code></pre>
+    <p class="muted">Docker·Python 확인 → 전용 venv(<code>%USERPROFILE%\.venvs\agentpod</code>)에 <code>agentpod</code> 설치 → 사용자 PATH 등록 → 이미지 빌드까지 자동으로 합니다.</p></li>
+  <li><h3>설치 확인</h3>
+    <pre><code><span class="p">PS&gt;</span> agentpod --help</code></pre>
+    <p class="muted">설치 스크립트를 돌린 <b>그 창에서 바로</b> 잡힙니다. 새로 여는 터미널 창도 자동으로 PATH가 적용됩니다.</p></li>
+</ol>
+<div class="note warn"><b>알려진 이슈:</b> <code>pip install --upgrade pip</code>을 <code>pip.exe</code>로 직접 실행하면 Windows에서 "자기 자신을 수정할 수 없다"는 오류가 납니다(pip.exe가 실행 중인 자기 파일을 못 바꿈). <code>install.ps1</code>은 이 문제를 피하려고 <code>python -m pip</code> 형태로 실행합니다 — 수동 설치 시에도 이 방식을 쓰세요.</div>
+</section>
+
+<section id="run">
+<h2><span class="num">2</span>첫 실행</h2>
+<ol class="steps">
+  <li><h3>프로젝트로 이동</h3>
+    <pre><code><span class="p">PS&gt;</span> cd C:\path\to\your\project</code></pre></li>
+  <li><h3>인증 준비 (택1)</h3>
+    <p class="muted"><b>API 키:</b> 프로젝트 루트에 <code>.env</code> 생성</p>
+    <pre><code><span class="cmt"># .env</span>
+ANTHROPIC_API_KEY=sk-ant-...</code></pre>
+    <p class="muted"><b>또는 대화형 로그인:</b></p>
+    <pre><code><span class="p">PS&gt;</span> agentpod shell
+<span class="p">agent@…$</span> claude login
+<span class="p">agent@…$</span> exit</code></pre></li>
+  <li><h3>실행</h3>
+    <pre><code><span class="p">PS&gt;</span> agentpod run
+<span class="cmt"># 격리된 컨테이너 안에서 Claude Code 대화형 세션 진입</span></code></pre>
+    <p class="muted">여러 프로젝트를 폴더로 오갈 필요 없이 메뉴로 고르고 싶다면 <a class="link" href="menu-guide.html">메뉴 가이드</a> 참고.</p></li>
+</ol>
+</section>
+
+<section id="verify">
+<h2><span class="num">3</span>동작 확인 (스모크 테스트)</h2>
+<pre><code><span class="p">PS&gt;</span> agentpod run
+<span class="cmt"># 다른 창에서:</span>
+<span class="p">PS&gt;</span> agentpod status                 <span class="cmt"># agent-… 컨테이너가 running 인지</span>
+<span class="p">PS&gt;</span> $C = (docker ps --filter name=agent- --format "{{.Names}}" | Select-Object -First 1)
+<span class="p">PS&gt;</span> docker exec $C bash -lc "whoami; id -u; claude --version"
+<span class="cmt"># agent / 1000 / 버전 문자열</span></code></pre>
+<table>
+<tr><th>확인 항목</th><th>기대값</th></tr>
+<tr><td>컨테이너 상태</td><td><code>running</code></td></tr>
+<tr><td>사용자 / uid</td><td><code>agent</code> / <code>1000</code></td></tr>
+<tr><td>Claude Code</td><td>버전 문자열 출력</td></tr>
+<tr><td>마운트</td><td><code>docker inspect $C</code>로 <code>C:\Users\...</code> 경로가 <code>/home/agent/.claude</code> 등에 매핑됐는지</td></tr>
+</table>
+</section>
+
+<section id="trouble">
+<h2><span class="num">4</span>문제 해결</h2>
+<table>
+<tr><th>증상</th><th>해결</th></tr>
+<tr><td><code>Docker not found</code></td><td>Docker Desktop을 설치하고 실행하세요. 트레이 아이콘이 켜져 있어야 합니다.</td></tr>
+<tr><td>Docker daemon not reachable</td><td>Docker Desktop 앱이 완전히 켜질 때까지(고래 아이콘 정적 상태) 기다린 뒤 재시도.</td></tr>
+<tr><td><code>python</code>이 안 잡힘</td><td>Python 설치 시 "Add python.exe to PATH"를 체크하지 않은 경우입니다. 재설치하거나 수동으로 PATH에 추가하세요.</td></tr>
+<tr><td>설치 후에도 <code>agentpod</code>가 안 잡힘</td><td>새 터미널 창을 열어보세요(PATH는 새 프로세스부터 적용). 그래도 안 되면 <code>%USERPROFILE%\.venvs\agentpod\Scripts</code>가 사용자 PATH에 있는지 확인.</td></tr>
+<tr><td><code>pip install --upgrade pip</code> 오류</td><td>정상적인 install.bat 실행이라면 이미 우회되어 있습니다. 수동 설치 중이라면 <code>python -m pip install --upgrade pip</code>로 실행하세요.</td></tr>
+<tr><td>한글이 깨져 보임(콘솔)</td><td><code>chcp 65001</code>로 콘솔 코드페이지를 UTF-8로 전환한 뒤 실행하세요. <code>.bat</code> 스크립트들은 이미 자동으로 처리합니다.</td></tr>
+<tr><td>마운트된 프로젝트 파일 쓰기 오류</td><td>Docker Desktop의 파일 공유 설정(Settings → Resources → File sharing)에서 해당 드라이브가 공유돼 있는지 확인.</td></tr>
+</table>
+</section>
+
+<section id="ref">
+<h2><span class="num">5</span>명령어 요약</h2>
+<pre><code><span class="p">PS&gt;</span> agentpod build [--force]   <span class="cmt"># 이미지 빌드</span>
+<span class="p">PS&gt;</span> agentpod run              <span class="cmt"># 컨테이너 스폰/재사용 → Claude 대화형</span>
+<span class="p">PS&gt;</span> agentpod shell            <span class="cmt"># 컨테이너 bash (로그인·디버깅)</span>
+<span class="p">PS&gt;</span> agentpod status           <span class="cmt"># 전체 컨테이너·세션 수</span>
+<span class="p">PS&gt;</span> agentpod stop             <span class="cmt"># 현재 프로젝트 컨테이너 stop</span>
+<span class="p">PS&gt;</span> agentpod rm               <span class="cmt"># stop + 제거</span>
+<span class="p">PS&gt;</span> agentpod export           <span class="cmt"># 설치한 플러그인/MCP를 팀원과 공유용으로 저장</span></code></pre>
+</section>
+
+<footer>
+  <p>AgentPod — Docker로 격리된 자율 AI 코딩 에이전트 컨테이너 · MIT License</p>
+  <p>폴더 선택 메뉴로 실행하려면 <a class="link" href="menu-guide.html">메뉴 가이드</a>, 일반 사용법은 <a class="link" href="../user-guide.html">사용자 가이드</a>, 내부 동작은 <a class="link" href="../how-it-works.html">동작 원리 가이드</a>를 참고하세요.</p>
+</footer>
+
+</div>
+</body>
+</html>
