@@ -13,7 +13,6 @@ from .docker_ctl import Mount
 
 app = typer.Typer(
     help="Docker-isolated AI coding agent containers.",
-    no_args_is_help=True,
     epilog=(
         "Tool selection (claude | codex | opencode) is a per-command flag, not shown "
         "above - see `agentpod run --help` / `agentpod shell --help`.\n\n"
@@ -22,6 +21,13 @@ app = typer.Typer(
         "agentpod shell --tool opencode"
     ),
 )
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """Docker-isolated AI coding agent containers. Run with no arguments for a folder-picker menu."""
+    if ctx.invoked_subcommand is None:
+        _interactive_menu()
 
 IMAGE_TAG = "agentpod:latest"
 _DOCKERFILE = Path(__file__).resolve().parent.parent.parent / "Dockerfile"
@@ -361,6 +367,86 @@ def export(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> No
     if added_mcp:
         typer.echo(f".mcp.json: added MCP server(s) {', '.join(added_mcp)} (secrets written to .env)")
     typer.echo("Review the diff, then commit agent.toml / .mcp.json. Never commit .env.")
+
+
+def _resolve_agents_dir(base: Path) -> Path:
+    """base/agents if that exists; otherwise base itself if it's already an
+    "agents" folder (e.g. the user cd'd straight into agents\\ and ran
+    `agentpod` from there, rather than from the repo root)."""
+    candidate = base / "agents"
+    if candidate.is_dir():
+        return candidate
+    if base.name == "agents":
+        return base
+    return candidate
+
+
+def _list_agent_folders(agents_dir: Path) -> list[Path]:
+    if not agents_dir.is_dir():
+        return []
+    return sorted((p for p in agents_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
+
+
+def _agent_action_menu(target: Path) -> None:
+    """Sub-menu for one selected project: run / shell / export it, or go back."""
+    while True:
+        typer.echo(f"\n  선택: {target}")
+        typer.echo("  R) 실행 (agentpod run)")
+        typer.echo("  S) 셸 접속 (agentpod shell)")
+        typer.echo("  E) 공유용으로 내보내기 (agentpod export)")
+        typer.echo("  B) 뒤로")
+        action = typer.prompt("동작 선택", default="B").strip().lower()
+
+        old_cwd = os.getcwd()
+        os.chdir(target)
+        try:
+            if action == "r":
+                run(tool=registry.DEFAULT_TOOL, profile=None, memory=None, cpus=None, pids=None, extra=[])
+                return
+            if action == "s":
+                shell(profile=None, tool=registry.DEFAULT_TOOL, memory=None, cpus=None, pids=None)
+                return
+            if action == "e":
+                export(target=".", profile=None)
+                typer.prompt("계속하려면 Enter", default="", show_default=False)
+                continue
+            if action == "b":
+                return
+            typer.echo("잘못된 선택입니다.")
+        finally:
+            os.chdir(old_cwd)
+
+
+def _interactive_menu() -> None:
+    """No subcommand given: a folder-picker menu over ./agents/* (BUILD-GUIDE §5)."""
+    agents_dir = _resolve_agents_dir(Path.cwd())
+    while True:
+        typer.echo("=== AgentPod ===\n")
+        folders = _list_agent_folders(agents_dir)
+        if not folders:
+            typer.echo(f"{agents_dir} 아래에 폴더가 없습니다.")
+        else:
+            for i, f in enumerate(folders, 1):
+                typer.echo(f"  {i}) {f.name}")
+        typer.echo("\n  P) 다른 경로 직접 입력")
+        typer.echo("  Q) 종료\n")
+        choice = typer.prompt("실행할 에이전트 번호", default="Q").strip()
+
+        if choice.lower() == "q":
+            return
+        target: Path | None
+        if choice.lower() == "p":
+            target = Path(typer.prompt("프로젝트 경로 입력"))
+        elif choice.isdigit() and 1 <= int(choice) <= len(folders):
+            target = folders[int(choice) - 1]
+        else:
+            typer.echo("잘못된 선택입니다.")
+            continue
+
+        if not target.is_dir():
+            typer.echo(f"경로가 없습니다: {target}")
+            continue
+        _agent_action_menu(target)
 
 
 if __name__ == "__main__":
