@@ -37,16 +37,34 @@ if [ -f "$CTX" ]; then
 fi
 
 # 3. Install & enable the superpowers Claude Code plugin (idempotent, best-effort).
-#    ~/.claude is bind-mounted from the host, so this persists and is shared
-#    across containers (like login). Public git clone — no auth needed; never
-#    fails the boot. Installed from the official marketplace (not obra/superpowers'
-#    own "superpowers-dev" marketplace) so agents get the same plugin shown at
-#    claude-plugins-official.
+#    ~/.claude is bind-mounted from the host and SHARED across every container
+#    for this project/profile (like login). Public git clone — no auth needed;
+#    never fails the boot. Installed from the official marketplace (not
+#    obra/superpowers' own "superpowers-dev" marketplace) so agents get the
+#    same plugin shown at claude-plugins-official.
+#
+#    `claude plugin list`'s text output is NOT a reliable "already installed?"
+#    signal -- observed reporting "no plugins" even for a fully-working,
+#    already-cached install. Trusting it anyway re-triggers `marketplace add`
+#    against a directory that already holds a complete git clone, and that
+#    clone attempt fails outright ("cannot copy .../info/exclude: File
+#    exists") because git's own template-copy step won't overwrite an existing
+#    .git. Two containers booting around the same time against this same
+#    shared bind mount can hit the identical error via a real race instead.
+#    Fix both: check the plugin cache directory actually having content
+#    (matches plugins.py's _is_fully_seeded on the host side), serialize the
+#    install with a file lock, and clear any stale/partial clone before
+#    retrying so it never wedges permanently.
 mkdir -p /home/agent/.claude
-if ! claude plugin list 2>/dev/null | grep -q "superpowers@claude-plugins-official"; then
-  claude plugin marketplace add anthropics/claude-plugins-official >/dev/null 2>&1 || true
-  claude plugin install superpowers@claude-plugins-official >/dev/null 2>&1 || true
-fi
+(
+  flock -w 60 200 || exit 0
+  CACHE_DIR="/home/agent/.claude/plugins/cache/claude-plugins-official/superpowers"
+  if [ ! -d "$CACHE_DIR" ] || [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
+    rm -rf /home/agent/.claude/plugins/marketplaces/claude-plugins-official
+    claude plugin marketplace add anthropics/claude-plugins-official >/dev/null 2>&1 || true
+    claude plugin install superpowers@claude-plugins-official >/dev/null 2>&1 || true
+  fi
+) 200>/home/agent/.claude/.plugin-install.lock
 # Remove any stale install from the old obra/superpowers-dev marketplace so it
 # doesn't sit alongside the official one on a shared ~/.claude bind mount.
 claude plugin uninstall superpowers@superpowers-dev >/dev/null 2>&1 || true
