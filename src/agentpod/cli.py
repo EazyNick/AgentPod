@@ -67,17 +67,23 @@ def _resolve_skillset(name: str | None) -> Path | None:
 
 
 def skillset_mounts(project_id: str, skillset: Path) -> list[Mount]:
-    """Read-only overlay of a borrowed agents/<name> preset's tool/MCP/skills
-    config onto this project's container paths, so an unrelated dev project can
-    borrow a ready-made skillset without the preset's files ever touching the
-    project's own files on the host (bind mounts only affect the container's
-    view of these specific paths)."""
+    """Read-only overlay of a borrowed agents/<name> preset's CLAUDE.md, MCP config,
+    skills manifest, and project-local .claude/ (settings.local.json, project-scoped
+    .claude/skills/*, etc.) onto this project's container paths -- so an unrelated
+    dev project can borrow a ready-made skillset without the preset's files ever
+    touching the project's own files on the host (bind mounts only affect the
+    container's view of these specific paths). If the preset has its own .claude/,
+    it fully replaces whatever the target project would otherwise have at that path.
+    """
     workdir = f"/project/{project_id}"
     mounts: list[Mount] = []
-    for fn in ("agent.toml", "skills.toml", ".mcp.json"):
+    for fn in ("CLAUDE.md", "agent.toml", "skills.toml", ".mcp.json"):
         src = skillset / fn
         if src.is_file():
             mounts.append(Mount(str(src), f"{workdir}/{fn}", ro=True))
+    claude_dir = skillset / ".claude"
+    if claude_dir.is_dir():
+        mounts.append(Mount(str(claude_dir), f"{workdir}/.claude", ro=True))
     return mounts
 
 
