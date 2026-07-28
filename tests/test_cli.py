@@ -206,12 +206,48 @@ def test_list_agent_folders_sorted(tmp_path):
     (tmp_path / "agents" / "verify").mkdir(parents=True)
     (tmp_path / "agents" / "not_a_dir.txt").write_text("x")
 
-    names = [p.name for p in cli._list_agent_folders(tmp_path)]
+    names = [p.name for p in cli._list_agent_folders(tmp_path / "agents")]
     assert names == ["jira", "n8n", "verify"]
 
 
-def test_list_agent_folders_empty_without_agents_dir(tmp_path):
-    assert cli._list_agent_folders(tmp_path) == []
+def test_list_agent_folders_empty_when_dir_missing(tmp_path):
+    assert cli._list_agent_folders(tmp_path / "agents") == []
+
+
+def test_resolve_agents_dir_prefers_base_slash_agents(tmp_path):
+    (tmp_path / "agents").mkdir()
+    assert cli._resolve_agents_dir(tmp_path) == tmp_path / "agents"
+
+
+def test_resolve_agents_dir_falls_back_to_base_itself_when_already_agents(tmp_path):
+    agents_dir = tmp_path / "agents"
+    agents_dir.mkdir()
+    (agents_dir / "jira").mkdir()
+    # cd'd straight into agents\ -- there's no agents\agents, so use agents_dir itself.
+    assert cli._resolve_agents_dir(agents_dir) == agents_dir
+
+
+def test_resolve_agents_dir_neither_exists_returns_base_slash_agents(tmp_path):
+    other = tmp_path / "not-agents"
+    other.mkdir()
+    assert cli._resolve_agents_dir(other) == other / "agents"
+
+
+def test_interactive_menu_lists_folders_when_run_from_inside_agents(monkeypatch, tmp_path):
+    agents_dir = tmp_path / "agents"
+    (agents_dir / "jira").mkdir(parents=True)
+    (agents_dir / "n8n").mkdir(parents=True)
+    monkeypatch.chdir(agents_dir)  # simulate `cd agents && agentpod`
+
+    seen = []
+    monkeypatch.setattr(cli.typer, "echo", lambda msg="": seen.append(str(msg)))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "Q")
+
+    cli._interactive_menu()
+
+    joined = "\n".join(seen)
+    assert "jira" in joined and "n8n" in joined
+    assert "아래에 폴더가 없습니다" not in joined
 
 
 def test_interactive_menu_quits_immediately(monkeypatch, tmp_path):

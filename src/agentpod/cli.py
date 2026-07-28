@@ -369,8 +369,19 @@ def export(target: str = typer.Argument("."), profile: str = _PROFILE_OPT) -> No
     typer.echo("Review the diff, then commit agent.toml / .mcp.json. Never commit .env.")
 
 
-def _list_agent_folders(base: Path) -> list[Path]:
-    agents_dir = base / "agents"
+def _resolve_agents_dir(base: Path) -> Path:
+    """base/agents if that exists; otherwise base itself if it's already an
+    "agents" folder (e.g. the user cd'd straight into agents\\ and ran
+    `agentpod` from there, rather than from the repo root)."""
+    candidate = base / "agents"
+    if candidate.is_dir():
+        return candidate
+    if base.name == "agents":
+        return base
+    return candidate
+
+
+def _list_agent_folders(agents_dir: Path) -> list[Path]:
     if not agents_dir.is_dir():
         return []
     return sorted((p for p in agents_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
@@ -408,12 +419,12 @@ def _agent_action_menu(target: Path) -> None:
 
 def _interactive_menu() -> None:
     """No subcommand given: a folder-picker menu over ./agents/* (BUILD-GUIDE §5)."""
-    base = Path.cwd()
+    agents_dir = _resolve_agents_dir(Path.cwd())
     while True:
         typer.echo("=== AgentPod ===\n")
-        folders = _list_agent_folders(base)
+        folders = _list_agent_folders(agents_dir)
         if not folders:
-            typer.echo(f"{base / 'agents'} 아래에 폴더가 없습니다.")
+            typer.echo(f"{agents_dir} 아래에 폴더가 없습니다.")
         else:
             for i, f in enumerate(folders, 1):
                 typer.echo(f"  {i}) {f.name}")
