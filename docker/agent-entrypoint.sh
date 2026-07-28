@@ -55,12 +55,27 @@ fi
 #    (matches plugins.py's _is_fully_seeded on the host side), serialize the
 #    install with a file lock, and clear any stale/partial clone before
 #    retrying so it never wedges permanently.
+#
+#    Separately, Claude Code's OWN marketplace refresh (triggered live by
+#    `/plugin`, independent of anything here) clones into a staging dir named
+#    after the source (e.g. anthropics-claude-plugins-official) then renames
+#    it onto the final name. On this same shared Windows bind mount that
+#    rename has been observed to fail ("EACCES ... rename ... -> .../
+#    claude-plugins-official"), which can leave the marketplace dir missing
+#    or broken while the plugin CACHE dir (populated earlier, separately)
+#    still looks fine -- so checking the cache alone would wrongly call this
+#    already-seeded and never repair it. Verify the marketplace dir itself
+#    (has a real marketplace.json) too, and also clear any leftover staging
+#    dir from a prior failed rename before retrying.
 mkdir -p /home/agent/.claude
 (
   flock -w 60 200 || exit 0
   CACHE_DIR="/home/agent/.claude/plugins/cache/claude-plugins-official/superpowers"
-  if [ ! -d "$CACHE_DIR" ] || [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ]; then
-    rm -rf /home/agent/.claude/plugins/marketplaces/claude-plugins-official
+  MARKET_DIR="/home/agent/.claude/plugins/marketplaces/claude-plugins-official"
+  STAGING_DIR="/home/agent/.claude/plugins/marketplaces/anthropics-claude-plugins-official"
+  if [ ! -d "$CACHE_DIR" ] || [ -z "$(ls -A "$CACHE_DIR" 2>/dev/null)" ] \
+     || [ ! -f "$MARKET_DIR/.claude-plugin/marketplace.json" ]; then
+    rm -rf "$MARKET_DIR" "$STAGING_DIR"
     claude plugin marketplace add anthropics/claude-plugins-official >/dev/null 2>&1 || true
     claude plugin install superpowers@claude-plugins-official >/dev/null 2>&1 || true
   fi
