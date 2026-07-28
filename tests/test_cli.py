@@ -385,7 +385,7 @@ def test_skillset_mounts_only_existing_files(tmp_path):
     preset.mkdir()
     (preset / "agent.toml").write_text("")
     (preset / ".mcp.json").write_text("{}")
-    # no skills.toml
+    # no skills.toml, no CLAUDE.md, no .claude/
 
     mounts = cli.skillset_mounts("proj-123", preset)
     containers = {m.container for m in mounts}
@@ -397,6 +397,24 @@ def test_skillset_mounts_empty_when_preset_has_none_of_the_files(tmp_path):
     preset = tmp_path / "preset"
     preset.mkdir()
     assert cli.skillset_mounts("proj-123", preset) == []
+
+
+def test_skillset_mounts_includes_claude_md_and_claude_dir(tmp_path):
+    preset = tmp_path / "preset"
+    (preset / ".claude" / "skills" / "some-skill").mkdir(parents=True)
+    (preset / "CLAUDE.md").write_text("# instructions")
+    (preset / ".mcp.json").write_text("{}")
+
+    mounts = cli.skillset_mounts("proj-123", preset)
+    containers = {m.container for m in mounts}
+    assert containers == {
+        "/project/proj-123/CLAUDE.md",
+        "/project/proj-123/.mcp.json",
+        "/project/proj-123/.claude",
+    }
+    assert all(m.ro for m in mounts)
+    claude_mount = next(m for m in mounts if m.container == "/project/proj-123/.claude")
+    assert claude_mount.host == str(preset / ".claude")
 
 
 def test_build_mounts_includes_skillset_overlay(monkeypatch, tmp_path):
