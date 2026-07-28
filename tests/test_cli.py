@@ -344,3 +344,171 @@ def test_agent_action_menu_back_does_nothing(monkeypatch, tmp_path):
     monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "B")
 
     cli._agent_action_menu(target)
+
+
+def test_skillset_root_finds_repo_agents_dir():
+    root = cli._skillset_root()
+    assert root is not None
+    assert root.name == "agents"
+    assert root.is_dir()
+
+
+def test_resolve_skillset_none_when_not_given():
+    assert cli._resolve_skillset(None) is None
+    assert cli._resolve_skillset("") is None
+
+
+def test_resolve_skillset_accepts_literal_path(tmp_path):
+    preset = tmp_path / "my-preset"
+    preset.mkdir()
+    assert cli._resolve_skillset(str(preset)) == preset.resolve()
+
+
+def test_resolve_skillset_resolves_name_under_skillset_root(monkeypatch, tmp_path):
+    root = tmp_path / "agents"
+    (root / "n8n").mkdir(parents=True)
+    monkeypatch.setattr(cli, "_skillset_root", lambda: root)
+    assert cli._resolve_skillset("n8n") == root / "n8n"
+
+
+def test_resolve_skillset_fails_when_not_found(monkeypatch, tmp_path):
+    monkeypatch.setattr(cli, "_skillset_root", lambda: tmp_path / "agents")
+    try:
+        cli._resolve_skillset("does-not-exist")
+        raise AssertionError("expected typer.Exit")
+    except cli.typer.Exit:
+        pass
+
+
+def test_skillset_mounts_only_existing_files(tmp_path):
+    preset = tmp_path / "preset"
+    preset.mkdir()
+    (preset / "agent.toml").write_text("")
+    (preset / ".mcp.json").write_text("{}")
+    # no skills.toml
+
+    mounts = cli.skillset_mounts("proj-123", preset)
+    containers = {m.container for m in mounts}
+    assert containers == {"/project/proj-123/agent.toml", "/project/proj-123/.mcp.json"}
+    assert all(m.ro for m in mounts)
+
+
+def test_skillset_mounts_empty_when_preset_has_none_of_the_files(tmp_path):
+    preset = tmp_path / "preset"
+    preset.mkdir()
+    assert cli.skillset_mounts("proj-123", preset) == []
+
+
+def test_build_mounts_includes_skillset_overlay(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    preset = tmp_path / "preset"
+    preset.mkdir()
+    (preset / ".mcp.json").write_text("{}")
+
+    mounts = cli.build_mounts("proj-1", str(tmp_path / "repo"), tool="claude", skillset=preset)
+    containers = {m.container for m in mounts}
+    assert "/project/proj-1/.mcp.json" in containers
+
+
+def test_interactive_menu_branches_to_skillset_menu_when_no_agents_dir(monkeypatch, tmp_path):
+    other = tmp_path / "dev-project"
+    other.mkdir()
+    monkeypatch.chdir(other)
+
+    called = []
+    monkeypatch.setattr(cli, "_skillset_menu", lambda project_dir: called.append(project_dir))
+    monkeypatch.setattr(
+        cli, "_own_agents_menu", lambda agents_dir: (_ for _ in ()).throw(AssertionError("wrong menu"))
+    )
+
+    cli._interactive_menu()
+    assert called == [other]
+
+
+def test_interactive_menu_uses_own_agents_menu_when_agents_dir_present(monkeypatch, tmp_path):
+    (tmp_path / "agents" / "jira").mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+
+    called = []
+    monkeypatch.setattr(cli, "_own_agents_menu", lambda agents_dir: called.append(agents_dir))
+    monkeypatch.setattr(
+        cli, "_skillset_menu", lambda project_dir: (_ for _ in ()).throw(AssertionError("wrong menu"))
+    )
+
+    cli._interactive_menu()
+    assert called == [tmp_path / "agents"]
+
+
+def test_skillset_menu_no_skillset_selected(monkeypatch, tmp_path):
+    project_dir = tmp_path / "dev-project"
+    project_dir.mkdir()
+    monkeypatch.setattr(cli, "_skillset_root", lambda: None)
+
+    called = []
+    monkeypatch.setattr(cli, "_project_action_menu", lambda pd, sk: called.append((pd, sk)))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "N")
+
+    cli._skillset_menu(project_dir)
+    assert called == [(project_dir, None)]
+
+
+def test_skillset_menu_selects_a_preset(monkeypatch, tmp_path):
+    project_dir = tmp_path / "dev-project"
+    project_dir.mkdir()
+    presets_root = tmp_path / "agentpod-agents"
+    (presets_root / "n8n").mkdir(parents=True)
+    (presets_root / "jira").mkdir(parents=True)
+    monkeypatch.setattr(cli, "_skillset_root", lambda: presets_root)
+
+    called = []
+    monkeypatch.setattr(cli, "_project_action_menu", lambda pd, sk: called.append((pd, sk)))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "2")  # sorted: jira(1), n8n(2)
+
+    cli._skillset_menu(project_dir)
+    assert called == [(project_dir, presets_root / "n8n")]
+
+
+def test_skillset_menu_quit(monkeypatch, tmp_path):
+    project_dir = tmp_path / "dev-project"
+    project_dir.mkdir()
+    monkeypatch.setattr(cli, "_skillset_root", lambda: None)
+    monkeypatch.setattr(
+        cli, "_project_action_menu", lambda pd, sk: (_ for _ in ()).throw(AssertionError("should not reach"))
+    )
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "Q")
+
+    cli._skillset_menu(project_dir)  # must not raise
+
+
+def test_project_action_menu_run_passes_skillset(monkeypatch, tmp_path):
+    project_dir = tmp_path / "dev-project"
+    project_dir.mkdir()
+    skillset = tmp_path / "preset"
+    skillset.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    calls = []
+    monkeypatch.setattr(cli, "run", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "R")
+
+    cli._project_action_menu(project_dir, skillset)
+
+    assert len(calls) == 1
+    assert calls[0]["skillset"] == str(skillset)
+    assert Path.cwd() == tmp_path
+
+
+def test_project_action_menu_run_without_skillset(monkeypatch, tmp_path):
+    project_dir = tmp_path / "dev-project"
+    project_dir.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    calls = []
+    monkeypatch.setattr(cli, "run", lambda **kw: calls.append(kw))
+    monkeypatch.setattr(cli.typer, "prompt", lambda *a, **k: "R")
+
+    cli._project_action_menu(project_dir, None)
+    assert calls[0]["skillset"] is None
