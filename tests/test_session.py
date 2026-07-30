@@ -1,4 +1,7 @@
 import os
+import sys
+
+import pytest
 
 from agentpod import session
 
@@ -103,3 +106,35 @@ def test_install_signal_handlers_survives_missing_sighup(monkeypatch):
     assert session.signal.SIGINT in registered
     assert session.signal.SIGTERM in registered
     assert not hasattr(session.signal, "SIGHUP")
+
+
+def test_windows_close_handler_noop_on_non_windows(monkeypatch):
+    monkeypatch.setattr(session.os, "name", "posix")
+    before = len(session._WIN_HANDLER_REFS)
+    called = []
+    session._install_windows_close_handler(lambda: called.append(True))
+    assert len(session._WIN_HANDLER_REFS) == before  # nothing registered
+    assert called == []
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="ctypes.windll only exists on Windows")
+def test_windows_close_handler_registers_and_dispatches(monkeypatch):
+    import ctypes
+
+    monkeypatch.setattr(session.os, "name", "nt")
+    captured = {}
+
+    def fake_set_console_ctrl_handler(callback, add):
+        captured["callback"] = callback
+        return 1  # success
+
+    monkeypatch.setattr(ctypes.windll.kernel32, "SetConsoleCtrlHandler", fake_set_console_ctrl_handler)
+
+    called = []
+    session._install_windows_close_handler(lambda: called.append(True))
+    handler = captured["callback"]
+
+    assert handler(0) == 0  # CTRL_C_EVENT -- already covered by SIGINT, not ours
+    assert called == []
+    assert handler(2) == 0  # CTRL_CLOSE_EVENT
+    assert called == [True]

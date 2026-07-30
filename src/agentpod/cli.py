@@ -209,7 +209,10 @@ def _attach(project_id: str, cname: str, cmd: list[str], profile: str | None = N
     lock = session.create_lock(prefix, session.new_session_id())
 
     def _cleanup() -> None:
-        session.release_lock(lock, prefix, lambda: docker_ctl.stop(cname))
+        # Short timeout: on Windows this can run from a console-close handler,
+        # which only gets a few seconds before the OS force-kills the process --
+        # docker's own default stop timeout (10s) risks losing the race.
+        session.release_lock(lock, prefix, lambda: docker_ctl.stop(cname, timeout=3))
 
     session.install_signal_handlers(_cleanup)
     try:

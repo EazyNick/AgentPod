@@ -98,3 +98,38 @@ def install_signal_handlers(cleanup: Callable[[], None]) -> None:
         except (ValueError, OSError):
             pass  # e.g. not in main thread / unsupported signal
     atexit.register(_run)
+    _install_windows_close_handler(_run)
+
+
+# Kept alive for the process lifetime: SetConsoleCtrlHandler only stores a raw
+# function pointer, so a callback that gets garbage-collected would crash the
+# process the next time Windows invokes it.
+_WIN_HANDLER_REFS: list = []
+
+
+def _install_windows_close_handler(run: Callable[[], None]) -> None:
+    """SIGHUP fires when a POSIX terminal closes, so the handlers above are
+    enough on Linux/WSL/macOS. Closing a native Windows cmd/PowerShell window
+    (the X button) is NOT a POSIX signal though -- Windows delivers
+    CTRL_CLOSE_EVENT through its own console control-handler mechanism, which
+    Python's `signal` module never sees. Without this, closing the window
+    silently leaves the container running. Registers a raw ctypes handler as
+    a supplement; no-op on non-Windows.
+    """
+    if os.name != "nt":
+        return
+    try:
+        import ctypes
+
+        handler_routine = ctypes.WINFUNCTYPE(ctypes.c_int, ctypes.c_uint)
+
+        def _handler(ctrl_type: int) -> int:
+            if ctrl_type in (2, 5, 6):  # CTRL_CLOSE/LOGOFF/SHUTDOWN_EVENT
+                run()
+            return 0  # not "handled" -- let Windows proceed with its default action
+
+        callback = handler_routine(_handler)
+        if ctypes.windll.kernel32.SetConsoleCtrlHandler(callback, True):
+            _WIN_HANDLER_REFS.append(callback)
+    except (OSError, AttributeError, ValueError):
+        pass  # best-effort; POSIX handlers/atexit above still cover normal exits

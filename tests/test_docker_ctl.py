@@ -90,6 +90,18 @@ def test_run_detached_omits_limits_when_none(monkeypatch):
     assert "--memory" not in a and "--cpus" not in a and "--pids-limit" not in a
 
 
+def test_stop_omits_timeout_flag_when_none(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.stop("agent-x")
+    assert captured["args"] == ["docker", "stop", "agent-x"]
+
+
+def test_stop_passes_timeout_flag(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.stop("agent-x", timeout=3)
+    assert captured["args"] == ["docker", "stop", "-t", "3", "agent-x"]
+
+
 def test_list_agents_parses_lines(monkeypatch):
     out = "agent-a\trunning\nagent-b\texited\n"
     monkeypatch.setattr(

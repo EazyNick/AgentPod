@@ -90,8 +90,12 @@ def exec_interactive(name: str, cmd: list[str]) -> int:
     return subprocess.run(["docker", "exec", "-it", name, *cmd], check=False).returncode
 
 
-def stop(name: str) -> None:
-    _run(["docker", "stop", name])
+def stop(name: str, timeout: int | None = None) -> None:
+    args = ["docker", "stop"]
+    if timeout is not None:
+        args += ["-t", str(timeout)]
+    args.append(name)
+    _run(args)
 
 
 def remove(name: str) -> None:
