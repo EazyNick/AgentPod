@@ -77,6 +77,7 @@
   <a href="#usage">① 사용법</a>
   <a href="#actions">② 선택 후 동작</a>
   <a href="#custom">③ 목록에 없는 폴더</a>
+  <a href="#skillset">④ 외부 프로젝트 (스킬셋 빌려오기)</a>
   <a href="#trouble">문제 해결</a>
 </div></nav>
 
@@ -134,8 +135,29 @@
 프로젝트 경로 입력: <span class="k">C:\work\my-other-project</span></code></pre>
 </section>
 
+<section id="skillset">
+<h2><span class="num">4</span>외부 프로젝트에서 실행할 때 — 스킬셋 빌려오기</h2>
+<p><code>agents\</code> 폴더가 없는 <b>외부 프로젝트</b>(이 저장소 밖의 다른 프로젝트)에서 인자 없이 <code>agentpod</code>를 치면, 폴더 목록 메뉴 대신 이 저장소 자신의 <code>agents\&lt;name&gt;</code> 프리셋(도구/MCP/스킬)을 빌려올지 묻는 메뉴가 뜹니다.</p>
+<pre><code>=== AgentPod ===
+
+현재 폴더: C:\work\my-other-project
+(이 폴더에는 agents\ 가 없어 외부 프로젝트로 인식했습니다)
+
+이 프로젝트에 빌려올 스킬셋(도구/MCP/스킬)을 고르세요:
+
+  1) apply-verify
+  2) spec-inspect
+
+  N) 스킬셋 없이 이 프로젝트만 실행
+  Q) 종료
+
+스킬셋 번호: <span class="k">1</span></code></pre>
+<p class="muted">번호를 고르면 그 프리셋의 <code>CLAUDE.md</code>·<code>agent.toml</code>·<code>skills.toml</code>·<code>.mcp.json</code>·<code>.claude\</code>가 컨테이너 안에서 <b>읽기 전용</b>으로 겹쳐 마운트됩니다 — 외부 프로젝트의 실제 파일은 건드리지 않습니다. <code>N</code>을 고르면 스킬셋 없이 그 프로젝트만 실행합니다. 이후 동작 선택(R/S/E) 메뉴는 §2와 동일합니다.</p>
+<div class="note warn">대상 프로젝트가 이미 자기 <code>.claude\</code> 폴더를 갖고 있다면, 빌려온 프리셋의 <code>.claude\</code>가 컨테이너 안에서 그것을 완전히 대체합니다(병합 아님). 메뉴 없이 명령줄에서 바로 쓰려면 <code>agentpod run --skillset apply-verify</code>처럼 플래그로도 지정할 수 있습니다 — 자세한 내용은 <a class="link" href="../user-guide.html">사용자 가이드</a> §4 참고.</div>
+</section>
+
 <section id="trouble">
-<h2><span class="num">4</span>문제 해결</h2>
+<h2><span class="num">5</span>문제 해결</h2>
 <table>
 <tr><th>증상</th><th>해결</th></tr>
 <tr><td>목록에 폴더가 하나도 안 뜸</td><td><code>agents\</code> 폴더가 있는 저장소 루트에서 실행 중인지 확인하세요(<code>cd</code>로 이동). 없거나 비어있으면 <code>P</code>로 경로를 직접 입력하세요.</td></tr>

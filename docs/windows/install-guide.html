@@ -133,6 +133,7 @@ ANTHROPIC_API_KEY=sk-ant-...</code></pre>
 <span class="cmt"># 격리된 컨테이너 안에서 Claude Code 대화형 세션 진입</span></code></pre>
     <p class="muted">여러 프로젝트를 폴더로 오갈 필요 없이 메뉴로 고르고 싶다면 <a class="link" href="menu-guide.html">메뉴 가이드</a> 참고.</p></li>
 </ol>
+<div class="note ok"><b>종료:</b> 세션을 빠져나오면 마지막 세션일 때 컨테이너가 자동으로 멈춥니다. 네이티브 Windows에서는 cmd/PowerShell <b>콘솔 창을 그냥 닫아도(X 버튼)</b> 동일하게 자동으로 정리됩니다 — 별도로 <code>agentpod stop</code>을 칠 필요가 없습니다.</div>
 </section>
 
 <section id="verify">
@@ -163,6 +164,7 @@ ANTHROPIC_API_KEY=sk-ant-...</code></pre>
 <tr><td><code>pip install --upgrade pip</code> 오류</td><td>정상적인 install_windows.bat 실행이라면 이미 우회되어 있습니다. 수동 설치 중이라면 <code>python -m pip install --upgrade pip</code>로 실행하세요.</td></tr>
 <tr><td>한글이 깨져 보임(콘솔)</td><td><code>chcp 65001</code>로 콘솔 코드페이지를 UTF-8로 전환한 뒤 실행하세요. <code>.bat</code> 스크립트들은 이미 자동으로 처리합니다.</td></tr>
 <tr><td>마운트된 프로젝트 파일 쓰기 오류</td><td>Docker Desktop의 파일 공유 설정(Settings → Resources → File sharing)에서 해당 드라이브가 공유돼 있는지 확인.</td></tr>
+<tr><td>코드를 업데이트(<code>git pull</code>)했는데 컨테이너 동작이 안 바뀜</td><td><code>install_windows.ps1</code>은 <code>agentpod build</code>를 <code>--force</code> 없이 호출합니다 — 이미지가 이미 있으면 재빌드를 <b>조용히 건너뜁니다</b>. 설치 스크립트를 다시 돌려도, <code>agentpod build</code>를 그냥 실행해도 마찬가지입니다. 코드·Dockerfile·entrypoint를 바꾼 뒤에는 반드시 <code>agentpod build --force</code>를 직접 실행하세요.</td></tr>
 </table>
 </section>
 

@@ -50,6 +50,7 @@ agentpod shell                 # 같은 컨테이너에 bash로 접속
 agentpod status                # 모든 agent-* 컨테이너 + 활성 세션 수
 agentpod stop                  # 이 프로젝트의 컨테이너 stop
 agentpod rm                    # stop + remove
+agentpod git-setup             # 모든 컨테이너가 공유하는 봇 git 신원 등록 (아래 봇 git 신원)
 agentpod context               # 이 컨테이너의 MD 컨텍스트 폴더 경로
 agentpod export                # 설치된 플러그인/스킬 + MCP 서버를 agent.toml/.mcp.json에 기록 (아래 공유하기)
 ```
