@@ -124,7 +124,7 @@
 <h2><span class="num">3</span>모듈 구조</h2>
 <p>오케스트레이터는 <b>한 파일 = 한 책임</b>으로 잘게 나뉜 Python 패키지입니다. 순수 함수 모듈(naming/paths/registry/context)과 부수효과 모듈(session/docker_ctl)을 CLI가 조립합니다.</p>
 <div class="filetree">src/agentpod/
-├── cli.py         <span class="cmt"># Typer 앱: build/run/shell/status/stop/rm/context/export 조립</span>
+├── cli.py         <span class="cmt"># Typer 앱: build/run/shell/status/stop/rm/context/export/git-setup 조립</span>
 ├── naming.py      <span class="cmt"># 경로 → 결정적 projectId / 컨테이너명 / 락 prefix</span>
 ├── paths.py       <span class="cmt"># ~/.agent 데이터 레이아웃 + ensure_layout()</span>
 ├── registry.py    <span class="cmt"># 도구 정의(claude): 바이너리·플래그·크레덴셜 마운트</span>
@@ -188,7 +188,7 @@ docker exec -it agent-&lt;projectId&gt; \
 os.kill(pid, <span class="k">0</span>)
   → 성공 / PermissionError  ⇒ <span class="s">살아있음</span>
   → ProcessLookupError      ⇒ <span class="s">죽음</span> → 락 즉시 삭제</code></pre>
-<div class="note"><b>시그널 처리.</b> <code>SIGINT / SIGTERM / SIGHUP</code> + <code>atexit</code>로 정리 루틴을 걸고, "이미 정리함" 플래그로 중복 실행을 막습니다. <code>SIGHUP</code>이 없는 플랫폼에서도 등록이 깨지지 않도록 시그널을 이름으로 안전하게 조회합니다.</div>
+<div class="note"><b>시그널 처리.</b> <code>SIGINT / SIGTERM / SIGHUP</code> + <code>atexit</code>로 정리 루틴을 걸고, "이미 정리함" 플래그로 중복 실행을 막습니다. <code>SIGHUP</code>이 없는 플랫폼에서도 등록이 깨지지 않도록 시그널을 이름으로 안전하게 조회합니다. <b>네이티브 Windows</b>에는 POSIX 시그널이 없으므로, cmd/PowerShell 콘솔 창을 닫을 때(X 버튼) 발생하는 <code>CTRL_CLOSE_EVENT</code>를 ctypes로 등록한 콘솔 제어 핸들러가 대신 받아 같은 정리 루틴을 추가로 트리거합니다.</div>
 </section>
 
 <section id="creds">
@@ -253,8 +253,8 @@ os.kill(pid, <span class="k">0</span>)
 <section id="scope">
 <h2><span class="num">11</span>이번 단계 범위</h2>
 <div class="grid c2">
-  <div class="panel"><h3>✅ 구현됨 (Phase 1)</h3><p class="muted">CLI(build/run/shell/status/stop/rm/context) · 결정적 이름 · 세션 카운팅 · 크래시 복구 · 크레덴셜 격리(2방식) · MD 컨텍스트 자동 주입 · claude 단일 도구 registry · 이미지 빌드</p></div>
-  <div class="panel"><h3>⏭ 후속 단계</h3><p class="muted">Chromium(headless) · 프로파일 다중 신원 · <code>.mcp.json</code>/skills 설치 · 봇 git 신원 · mise 캐시 · worktree 병렬 실행 · 리소스 상한 · 고아 GC</p></div>
+  <div class="panel"><h3>✅ 구현됨 (Phase 1)</h3><p class="muted">CLI(build/run/shell/status/stop/rm/context/export/git-setup) · 결정적 이름 · 세션 카운팅 · 크래시 복구 · 크레덴셜 격리(2방식) · MD 컨텍스트 자동 주입 · claude 단일 도구 registry · 이미지 빌드 · <code>--profile</code> 프로파일 다중 신원 · <code>.mcp.json</code>/skills 자동 설치 · <code>agentpod git-setup</code> 봇 git 신원</p></div>
+  <div class="panel"><h3>⏭ 후속 단계</h3><p class="muted">Chromium(headless) · mise 캐시 · worktree 병렬 실행 · 리소스 상한 · 고아 GC</p></div>
 </div>
 </section>
 

@@ -319,13 +319,15 @@ hostAddressLoopback=true</code></pre></li>
 
 <section id="ref">
 <h2><span class="num">10</span>명령어 요약</h2>
-<pre><code><span class="p">$</span> agentpod build [--force]   <span class="cmt"># 이미지 빌드</span>
+<pre><code><span class="p">$</span> agentpod build [--force]   <span class="cmt"># 이미지 빌드 (이미 있으면 --force 없이는 skip)</span>
 <span class="p">$</span> agentpod run              <span class="cmt"># 컨테이너 스폰/재사용 → Claude 대화형</span>
 <span class="p">$</span> agentpod shell            <span class="cmt"># 컨테이너 bash (로그인·디버깅)</span>
 <span class="p">$</span> agentpod status           <span class="cmt"># 전체 컨테이너·세션 수</span>
 <span class="p">$</span> agentpod stop             <span class="cmt"># 현재 프로젝트 컨테이너 stop</span>
 <span class="p">$</span> agentpod rm               <span class="cmt"># stop + 제거</span>
-<span class="p">$</span> agentpod context          <span class="cmt"># MD 컨텍스트 폴더 경로</span></code></pre>
+<span class="p">$</span> agentpod git-setup        <span class="cmt"># 모든 컨테이너가 공유하는 봇 git 신원 등록</span>
+<span class="p">$</span> agentpod context          <span class="cmt"># MD 컨텍스트 폴더 경로</span>
+<span class="p">$</span> agentpod export           <span class="cmt"># 설치한 플러그인/MCP를 팀원과 공유용으로 저장</span></code></pre>
 </section>
 
 <footer>
