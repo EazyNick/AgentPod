@@ -52,6 +52,16 @@ def container_state(name: str) -> str | None:
     return cp.stdout.strip() or None
 
 
+def container_label(name: str, key: str) -> str | None:
+    """Value of a label on an existing (running or exited) container, or None
+    if the container doesn't exist. Empty string if the container exists but
+    was never given this label (e.g. created before the label was introduced)."""
+    cp = _run(["docker", "inspect", "-f", f'{{{{ index .Config.Labels "{key}" }}}}', name])
+    if cp.returncode != 0:
+        return None
+    return cp.stdout.strip()
+
+
 def run_detached(
     name: str,
     image: str,
@@ -61,6 +71,7 @@ def run_detached(
     memory: str | None = None,
     cpus: str | None = None,
     pids_limit: int | None = None,
+    labels: dict[str, str] | None = None,
 ) -> None:
     args = ["docker", "run", "-d", "--name", name, "-w", workdir]
     if env_file:
@@ -71,6 +82,8 @@ def run_detached(
         args += ["--cpus", str(cpus)]
     if pids_limit is not None:
         args += ["--pids-limit", str(pids_limit)]
+    for k, v in (labels or {}).items():
+        args += ["--label", f"{k}={v}"]
     for m in mounts:
         args += ["-v", m.to_arg()]
     args.append(image)

@@ -1,6 +1,7 @@
 """AgentPod CLI — spawn and drive per-project agent containers (BUILD-GUIDE §5)."""
 from __future__ import annotations
 
+import hashlib
 import os
 import subprocess
 from pathlib import Path
@@ -168,6 +169,19 @@ def _ensure_image() -> None:
         docker_ctl.build_image(_DOCKERFILE, _BUILD_CONTEXT, IMAGE_TAG)
 
 
+ENV_HASH_LABEL = "agentpod.env-hash"
+
+
+def _env_hash(project_path: str) -> str:
+    """Content hash of the project's .env (empty string if absent), stored as a
+    container label at creation time so a later .env edit can be detected --
+    Docker never re-reads an env file into an already-created container."""
+    envp = Path(project_path) / ".env"
+    if not envp.is_file():
+        return ""
+    return hashlib.sha256(envp.read_bytes()).hexdigest()
+
+
 def ensure_container(
     project_id: str,
     project_path: str,
@@ -178,6 +192,12 @@ def ensure_container(
 ) -> str:
     cname = naming.container_name(project_id, profile)
     state = docker_ctl.container_state(cname)
+    env_hash = _env_hash(project_path)
+    if state in ("running", "exited") and docker_ctl.container_label(cname, ENV_HASH_LABEL) != env_hash:
+        # .env changed since this container was created (or it predates env-hash
+        # labeling); recreate it so the new values actually get injected.
+        docker_ctl.remove(cname)
+        state = None
     if state == "running":
         return cname
     if registry.get_tool(tool).uses_claude_json:
@@ -200,6 +220,7 @@ def ensure_container(
         memory=res.memory,
         cpus=res.cpus,
         pids_limit=res.pids_limit,
+        labels={ENV_HASH_LABEL: env_hash},
     )
     return cname
 

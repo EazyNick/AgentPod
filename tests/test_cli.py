@@ -93,6 +93,88 @@ def test_build_mounts_codex_tool(monkeypatch, tmp_path):
     assert "/home/agent/.claude.json" not in conts  # codex has no claude.json
 
 
+def test_ensure_container_recreates_running_container_when_env_file_changed(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    project_path = tmp_path / "repo"
+    project_path.mkdir()
+    (project_path / ".env").write_text("FOO=new\n")
+
+    calls = []
+    monkeypatch.setattr(cli.docker_ctl, "container_state", lambda name: "running")
+    monkeypatch.setattr(cli.docker_ctl, "container_label", lambda name, key: "stale-hash")
+    monkeypatch.setattr(cli.docker_ctl, "remove", lambda name: calls.append(("remove", name)))
+    monkeypatch.setattr(cli.docker_ctl, "start", lambda name: calls.append(("start", name)))
+    monkeypatch.setattr(cli, "build_mounts", lambda *a, **k: [])
+    monkeypatch.setattr(cli.plugins, "seed_superpowers", lambda *a, **k: None)
+    monkeypatch.setattr(
+        cli.docker_ctl, "run_detached", lambda **kw: calls.append(("run_detached", kw))
+    )
+
+    cname = cli.ensure_container("repo-x", str(project_path))
+
+    assert ("remove", cname) in calls
+    kinds = [c[0] for c in calls]
+    assert kinds.index("remove") < kinds.index("run_detached")
+    run_kwargs = next(c[1] for c in calls if c[0] == "run_detached")
+    assert run_kwargs["env_file"] == str(project_path / ".env")
+    assert run_kwargs["labels"] == {cli.ENV_HASH_LABEL: cli._env_hash(str(project_path))}
+
+
+def test_ensure_container_reuses_running_container_when_env_file_unchanged(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    project_path = tmp_path / "repo"
+    project_path.mkdir()
+    (project_path / ".env").write_text("FOO=same\n")
+    current_hash = cli._env_hash(str(project_path))
+
+    calls = []
+    monkeypatch.setattr(cli.docker_ctl, "container_state", lambda name: "running")
+    monkeypatch.setattr(cli.docker_ctl, "container_label", lambda name, key: current_hash)
+    monkeypatch.setattr(cli.docker_ctl, "remove", lambda name: calls.append(("remove", name)))
+    monkeypatch.setattr(
+        cli.docker_ctl, "run_detached", lambda **kw: calls.append(("run_detached", kw))
+    )
+
+    cname = cli.ensure_container("repo-x", str(project_path))
+
+    assert calls == []
+    assert cname == cli.naming.container_name("repo-x", None)
+
+
+def test_ensure_container_recreates_exited_container_when_env_file_changed(monkeypatch, tmp_path):
+    monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
+    from agentpod import paths
+
+    paths.ensure_layout()
+    project_path = tmp_path / "repo"
+    project_path.mkdir()
+    (project_path / ".env").write_text("FOO=new\n")
+
+    calls = []
+    monkeypatch.setattr(cli.docker_ctl, "container_state", lambda name: "exited")
+    monkeypatch.setattr(cli.docker_ctl, "container_label", lambda name, key: "stale-hash")
+    monkeypatch.setattr(cli.docker_ctl, "remove", lambda name: calls.append(("remove", name)))
+    monkeypatch.setattr(cli.docker_ctl, "start", lambda name: calls.append(("start", name)))
+    monkeypatch.setattr(cli, "build_mounts", lambda *a, **k: [])
+    monkeypatch.setattr(cli.plugins, "seed_superpowers", lambda *a, **k: None)
+    monkeypatch.setattr(
+        cli.docker_ctl, "run_detached", lambda **kw: calls.append(("run_detached", kw))
+    )
+
+    cli.ensure_container("repo-x", str(project_path))
+
+    kinds = [c[0] for c in calls]
+    assert "remove" in kinds
+    assert "start" not in kinds  # must be re-created via run_detached, not just started
+    assert "run_detached" in kinds
+
+
 def test_setup_ssh_generates_key_and_known_hosts(monkeypatch, tmp_path):
     monkeypatch.setenv("AGENT_HOME", str(tmp_path / "root"))
     from agentpod import paths

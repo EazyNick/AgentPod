@@ -90,6 +90,37 @@ def test_run_detached_omits_limits_when_none(monkeypatch):
     assert "--memory" not in a and "--cpus" not in a and "--pids-limit" not in a
 
 
+def test_run_detached_passes_labels(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.run_detached("agent-x", "img", [], "/w", None, labels={"agentpod.env-hash": "abc123"})
+    a = captured["args"]
+    assert "--label" in a
+    assert a[a.index("--label") + 1] == "agentpod.env-hash=abc123"
+
+
+def test_run_detached_omits_labels_when_none(monkeypatch):
+    captured = _capture(monkeypatch)
+    docker_ctl.run_detached("agent-x", "img", [], "/w", None)
+    assert "--label" not in captured["args"]
+
+
+def test_container_label_returns_value(monkeypatch):
+    def fake_run(args, **kw):
+        assert args[:2] == ["docker", "inspect"]
+        return subprocess.CompletedProcess(args, 0, stdout="abc123\n", stderr="")
+
+    monkeypatch.setattr(docker_ctl.subprocess, "run", fake_run)
+    assert docker_ctl.container_label("agent-x", "agentpod.env-hash") == "abc123"
+
+
+def test_container_label_missing_container_returns_none(monkeypatch):
+    def fake_run(args, **kw):
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="No such object")
+
+    monkeypatch.setattr(docker_ctl.subprocess, "run", fake_run)
+    assert docker_ctl.container_label("agent-x", "agentpod.env-hash") is None
+
+
 def test_stop_omits_timeout_flag_when_none(monkeypatch):
     captured = _capture(monkeypatch)
     docker_ctl.stop("agent-x")
